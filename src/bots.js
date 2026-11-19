@@ -472,32 +472,37 @@
     return V3(this.pos.x, 1.1 * this.app.scale, this.pos.z);
   };
 
-  Bot.prototype.damage = function (dmg, head, fromPlayer) {
+  Bot.prototype.damage = function (dmg, head, fromPlayer, byName) {
     if (this.dead) return false;
     this.hp -= dmg;
     this.hitFlash = 0.12;
     this.painT = 0.35;
+    this.lastAttacker = byName || (fromPlayer ? 'SEN' : 'BOT');
     this.av.root.traverse(function (o) {
       if (o.isMesh && o.material && o.material.emissive !== undefined) {
         o.material.emissive = new T.Color(0xff2222);
         o.material.emissiveIntensity = 0.55;
       }
     });
-    if (this.hp <= 0) { this.die(head); return true; }
+    if (this.hp <= 0) { this.die(head, fromPlayer); return true; }
     // vurulunca daha agresif
     if (fromPlayer) { this.state = 'hunt'; this.think = 0; this.seenT = 1; }
     return false;
   };
 
-  Bot.prototype.die = function (head) {
+  Bot.prototype.die = function (head, byPlayer) {
     this.dead = true;
-    G.kills++; G.waveKills++;
-    if (head) G.headshots++;
+    G.waveKills++;
+    var mine = (byPlayer !== false);
+    if (mine) { G.kills++; if (head) G.headshots++; }
     var money = this.def.money + (head ? 35 : 0) + G.wave * 4;
-    addMoney(money);
-    killFeed('SEN', this.name, this.def.name);
-    Audio2.kill();
-    if (head) Audio2.head();
+    if (mine || Math.random() < 0.6) addMoney(mine ? money : Math.round(money * 0.5));
+    if (mine) {
+      killFeed('SEN', this.name, this.def.name);
+      Audio2.kill();
+      if (head) Audio2.head();
+    }
+    G.shake = Math.max(G.shake, 0.12);
     // düşme animasyonu
     this.deadT = 0;
     this.fallDir = Math.random() < 0.5 ? 1 : -1;

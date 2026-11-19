@@ -7,7 +7,8 @@
     waveNo: $('waveNo'), waveInfo: $('waveInfo'), killfeed: $('killfeed'),
     cross: $('crosshair'), hit: $('hitmarker'), hurt: $('hurt'), banner: $('banner'),
     hint: $('hint'), hitdir: $('hitdir'), dmgLayer: $('dmgLayer'), zoneWarn: $('zoneWarn'),
-    radar: $('radar')
+    radar: $('radar'), allyBox: $('allyBox'), timeIcon: $('timeIcon'),
+    timeName: $('timeName'), timeSub: $('timeSub')
   };
   var radarCtx = HUD.radar ? HUD.radar.getContext('2d') : null;
 
@@ -520,8 +521,10 @@
     if (n === 1) G.spawnQueue = G.spawnQueue.map(function () { return Math.random() < 0.25 ? 'knifer' : 'thug'; });
     G.enemiesLeft = G.spawnQueue.length;
     HUD.waveNo.textContent = 'DALGA ' + n;
+    // her dalgada zaman değişir: şafak → öğle → gün batımı → gece
+    setTimeOfDay(n - 1, false);
     updateWaveHud();
-    banner('DALGA ' + n, n === 1 ? 'BOTLAR GELİYOR' : 'KALAN ' + G.spawnQueue.length + ' DÜŞMAN', 2.2);
+    banner('DALGA ' + n, (TIMES[(n - 1) % TIMES.length].icon + ' ' + TIMES[(n - 1) % TIMES.length].name + ' · ' + TIMES[(n - 1) % TIMES.length].sub), 2.4);
     Audio2.wave();
     hint(G.spawnQueue.length + ' bot mahalleye giriyor — tel örgü hattını tut!', 3.2);
     G.state = 'playing';
@@ -750,6 +753,7 @@
     G.spawnQueue = []; G.enemiesLeft = 0; G.totalEarned = 0;
     G.bannerT = 0; G.shotT = 0; G.shopDelay = 0;
     G.boughtSpeed = false; G.boughtDmg = false; G.boughtHp = false;
+    G.allKills = 0; G.timeIdx = 0; G.timeName = 'ŞAFAK';
     G.speedMul = 1; G.dmgMul = 1; G.dead = false; G.shake = 0; G.hitFlash = 0;
     updateHealthHud(); updateAmmoHud(); updateMoneyHud();
   }
@@ -778,6 +782,7 @@
     $('shop').classList.add('hidden');
     $('pause').classList.add('hidden');
     HUD.hud.classList.add('on');
+    spawnAllies();
     // başlangıç: bıçak + tabanca, 500 TL
     requestLock();
     setTimeout(function () { G.suppressPause = false; }, 300);
@@ -800,7 +805,7 @@
   }
   function toMenu() {
     exitLock();
-    clearBots(); clearPickups();
+    clearBots(); clearPickups(); clearAllies();
     G.state = 'menu';
     HUD.hud.classList.remove('on');
     $('pause').classList.add('hidden');
@@ -836,10 +841,13 @@
       if (G.state === 'playing') {
         queueSpawnLogic(dt);
         updatePickups(dt);
+        updateAllies(dt);
         InteractionTick(dt);
       }
     }
     Effects.update(dt);
+    updateTimeOfDay(dt);
+    updateStars(dt);
     updateHudTimers(dt);
   }
 
@@ -868,6 +876,8 @@
     if (G.state !== 'menu') simulate(dt);
     else Effects.update(dt);
     mobileSync();
+    updateAllyHud(dt);
+    updateTimeHud();
     drawRadar();
     renderAll();
   }
@@ -923,6 +933,38 @@
       HUD.armorBar.querySelector('b').style.transform = 'scaleX(' + (ar / 100) + ')';
       HUD.armorBar.querySelector('span').textContent = Math.ceil(ar);
     }
+  }
+
+  /* ==================================================================
+     DOST BOT HUD'U
+  ================================================================== */
+  var allyHudT = 0;
+  function updateAllyHud(dt) {
+    if (!HUD.allyBox) return;
+    allyHudT -= dt;
+    if (allyHudT > 0) return;
+    allyHudT = 0.18;
+    var html = '';
+    for (var i = 0; i < allies.length; i++) {
+      var a = allies[i];
+      var ratio = a.dead ? 0 : clamp(a.hp / a.maxHp, 0, 1);
+      var rev = a.dead ? Math.max(0, Math.ceil(8 - a.deadT)) + 'sn' : Math.ceil(a.hp);
+      html += '<div class="ally' + (a.dead ? ' dead' : '') + '">' +
+        '<i class="dot"></i>' +
+        '<span class="nm">' + a.name + '</span>' +
+        '<span class="bar2"><b style="transform:scaleX(' + ratio + ')"></b></span>' +
+        '<span class="rev">' + rev + '</span>' +
+        '</div>';
+    }
+    HUD.allyBox.innerHTML = html;
+  }
+  function updateTimeHud() {
+    if (G.lastTimeShown === G.timeIdx) return;
+    G.lastTimeShown = G.timeIdx;
+    var t = TIMES[G.timeIdx % TIMES.length];
+    if (HUD.timeIcon) HUD.timeIcon.textContent = t.icon;
+    if (HUD.timeName) HUD.timeName.textContent = t.name;
+    if (HUD.timeSub) HUD.timeSub.textContent = t.sub;
   }
 
   /* ==================================================================
@@ -988,6 +1030,17 @@
         c.strokeStyle = 'rgba(255,77,94,.5)'; c.lineWidth = 1.2;
         c.beginPath(); c.arc(p.x, p.y, s + 2.5, 0, 6.2832); c.stroke();
       }
+    }
+    // dost botlar (yeşil elmas)
+    for (var ai = 0; ai < allies.length; ai++) {
+      var al = allies[ai];
+      var ap = toRadar(al.pos.x, al.pos.z);
+      if (Math.hypot(ap.x - cx, ap.y - cy) > R) continue;
+      c.save();
+      c.translate(ap.x, ap.y); c.rotate(Math.PI / 4);
+      c.fillStyle = al.dead ? 'rgba(255,77,94,.55)' : '#6ef2b0';
+      c.fillRect(-2.6, -2.6, 5.2, 5.2);
+      c.restore();
     }
     // oyuncu
     c.save();
@@ -1088,6 +1141,8 @@
   resizeView();
   bindUI();
   initMobileUI();
+  initDayNight();
+  setTimeOfDay(0, true);
   updateBest();
   updateAmmoHud();
   updateHealthHud();
@@ -1113,6 +1168,8 @@
     viewCam: viewCam, viewScene: viewScene, vmList: vmList, vmHold: vHold,
     mobile: MOBILE, isTouch: IS_TOUCH, ads: ADS, reload: tryReload, switchW: switchWeapon,
     toggleShop: toggleShop, pause: pauseGame, resume: resumeGame,
+    allies: allies, spawnAllies: spawnAllies, setTime: setTimeOfDay, times: TIMES,
+    sun: sun, hemi: hemi, ambient: ambient, skyDome: function () { return skyDome; },
     items: SHOP_ITEMS, weapons: WEAPONS, hurt: hurtPlayer, spawn: spawnBot,
     openShop: openShop, los: losBlocked, findPath: findPath, grid: grid, GN: GN, CELL: CELL,
     HALF: HALF, COL: COL, pickups: pickups, syncCam: function () {

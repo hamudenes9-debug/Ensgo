@@ -68,6 +68,24 @@
   #ammo small{font-size:19px;color:var(--dim);font-weight:700}
   #ammo.low{color:var(--red)}
   #moneyWrap{position:absolute;right:26px;top:22px}
+  #allyBox{position:absolute;left:22px;top:216px;display:flex;flex-direction:column;gap:6px;width:186px}
+  .ally{display:flex;align-items:center;gap:7px;background:rgba(8,14,18,.62);border:1px solid rgba(110,242,176,.22);
+    border-radius:4px;padding:5px 8px;font-size:11px;font-weight:800;letter-spacing:.3px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  .ally.dead{opacity:.55;border-color:rgba(255,77,94,.35)}
+  .ally .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px rgba(110,242,176,.8);flex:0 0 auto}
+  .ally.dead .dot{background:var(--red);box-shadow:none}
+  .ally .nm{color:#cfe7db;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:92px}
+  .ally .bar2{position:relative;flex:1;height:5px;background:rgba(0,0,0,.55);border-radius:3px;overflow:hidden}
+  .ally .bar2 > b{position:absolute;inset:0;background:linear-gradient(90deg,#2be08a,#6ef2b0);transform-origin:left center;transition:transform .2s}
+  .ally.dead .bar2 > b{background:var(--red)}
+  .ally .rev{font-size:9.5px;color:#ff9aa5;letter-spacing:.5px}
+  #timeBox{position:absolute;left:50%;top:64px;transform:translateX(-50%);display:flex;align-items:center;gap:7px;
+    background:rgba(8,14,18,.55);border:1px solid rgba(255,255,255,.10);border-radius:20px;
+    padding:5px 13px;font-size:11.5px;font-weight:800;letter-spacing:1.6px;color:#dfe8f2;
+    text-shadow:0 1px 3px #000;box-shadow:0 4px 16px rgba(0,0,0,.35)}
+  #timeBox i{font-style:normal;font-size:9.5px;letter-spacing:1.4px;color:#9fb0c2;font-weight:700}
+  #timeBox span{font-size:14px;line-height:1}
   #money{position:relative;font-size:23px;font-weight:900;color:var(--mint);
     text-shadow:0 2px 12px rgba(0,0,0,.7);letter-spacing:.5px}
   #money::before{content:"₺";font-size:17px;margin-right:2px;opacity:.8}
@@ -313,6 +331,8 @@
     body.touch #waveBox{top:14px}
     body.touch #waveInfo{font-size:14px}
     body.touch #moneyWrap{position:absolute;right:14px;top:12px}
+    body.touch #allyBox{top:132px;width:126px}
+    body.touch #timeBox{top:104px;left:50%}
     body.touch #money{font-size:17px;text-align:right}
     body.touch #hpWrap{bottom:210px}
     body.touch #weaponBox{bottom:auto;top:64px;right:14px}
@@ -334,6 +354,11 @@
     #ammo{font-size:30px}
     #moneyWrap{right:14px;top:14px}
     #money{font-size:18px}
+    #allyBox{width:120px;top:140px;left:12px;gap:4px}
+    .ally{font-size:9.5px;padding:3px 6px}
+    .ally .nm{max-width:56px}
+    #timeBox{font-size:10px;padding:3px 9px;top:56px}
+    #timeBox i{display:none}
     #crosshair{opacity:.9}
   }
 </style>
@@ -377,6 +402,8 @@
     </div>
 
     <div id="moneyWrap"><div id="money">0<span class="gain">+0</span></div></div>
+    <div id="allyBox"></div>
+    <div id="timeBox"><span id="timeIcon">🌅</span><b id="timeName">ŞAFAK</b><i id="timeSub">SİS ÇÖKÜYOR</i></div>
     <div id="killfeed"></div>
 
     <div id="hpWrap">

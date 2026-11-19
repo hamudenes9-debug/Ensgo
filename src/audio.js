@@ -263,8 +263,49 @@
     wood: new T.MeshStandardMaterial({ color: 0x7a4a26, roughness: 0.68, metalness: 0.05 }),
     woodDark: new T.MeshStandardMaterial({ color: 0x5d3618, roughness: 0.72 }),
     steel: new T.MeshStandardMaterial({ color: 0xb9c2cb, roughness: 0.22, metalness: 0.95 }),
-    skin: new T.MeshStandardMaterial({ color: 0xc98d63, roughness: 0.85 })
+    skin: new T.MeshStandardMaterial({ color: 0xc98d63, roughness: 0.85 }),
+    glove: new T.MeshStandardMaterial({ color: 0x2a2f36, roughness: 0.82, metalness: 0.05 }),
+    glovePalm: new T.MeshStandardMaterial({ color: 0x3a4048, roughness: 0.9 }),
+    glovePad: new T.MeshStandardMaterial({ color: 0x15181c, roughness: 0.75 }),
+    sleeve: new T.MeshStandardMaterial({ color: 0x3c4a3a, roughness: 0.92 }),
+    sleeve2: new T.MeshStandardMaterial({ color: 0x40465a, roughness: 0.92 }),
+    sleeve3: new T.MeshStandardMaterial({ color: 0x4a3b2a, roughness: 0.92 }),
+    watch: new T.MeshStandardMaterial({ color: 0x1b1e22, roughness: 0.35, metalness: 0.7 })
   };
+
+  // eldivenli el: avuç + 4 parmak + başparmak + bileklik + saat
+  function glovedHand(side) {
+    var h = new T.Group();
+    var sg = side === -1 ? -1 : 1;
+    var palm = gbox(0.115, 0.15, 0.15, gunMat.glove, 0, 0, 0);
+    h.add(palm);
+    // parmaklar (kavrama pozisyonunda bükülü)
+    for (var i = 0; i < 4; i++) {
+      var f = gbox(0.026, 0.085, 0.05, gunMat.glovePalm, -0.042 + i * 0.028, 0.055, -0.062);
+      f.rotation.x = -0.75;
+      h.add(f);
+      var k2 = gbox(0.024, 0.055, 0.045, gunMat.glovePad, -0.042 + i * 0.028, 0.03, -0.1);
+      k2.rotation.x = -1.15;
+      h.add(k2);
+    }
+    // başparmak
+    var th = gbox(0.035, 0.11, 0.05, gunMat.glovePalm, sg * -0.06, 0.03, 0.01);
+    th.rotation.z = sg * 0.5; th.rotation.x = -0.35;
+    h.add(th);
+    // bilek manşeti + saat
+    var cuff = gbox(0.125, 0.07, 0.14, gunMat.glovePad, 0, -0.1, 0.02);
+    h.add(cuff);
+    var strap = gbox(0.135, 0.035, 0.148, gunMat.watch, 0, -0.135, 0.02);
+    h.add(strap);
+    var face = gbox(0.05, 0.012, 0.05, new T.MeshStandardMaterial({ color: 0x9fe8c4, emissive: 0x2f8f66, emissiveIntensity: 0.6, roughness: 0.4 }), sg * 0.055, -0.116, 0.02);
+    h.add(face);
+    return h;
+  }
+  function forearm(sleeveMat, len, rotX) {
+    var m = gbox(0.15, 0.15, len, sleeveMat, 0, -0.02, len / 2);
+    if (rotX) m.rotation.x = rotX;
+    return m;
+  }
   function gbox(w, h, d, mat, x, y, z, rx, ry, rz) {
     var m = new T.Mesh(new T.BoxGeometry(w, h, d), mat);
     m.position.set(x, y, z);
@@ -282,23 +323,40 @@
 
   function buildKnifeVM() {
     var g = new T.Group();
-    var blade = gbox(0.035, 0.16, 0.62, gunMat.steel, 0, 0.03, -0.3);
-    var tip = gbox(0.035, 0.1, 0.16, gunMat.steel, 0, 0.055, -0.66);
-    var edge = gbox(0.005, 0.03, 0.6, new T.MeshStandardMaterial({ color: 0xe8eef5, roughness: 0.1, metalness: 1 }), 0, 0.12, -0.32);
-    var guard = gbox(0.09, 0.03, 0.07, gunMat.metalLight, 0, -0.06, 0.0);
-    var handle = gbox(0.055, 0.11, 0.24, gunMat.polymer, 0, -0.07, 0.14);
-    var pommel = gbox(0.06, 0.09, 0.05, gunMat.metalLight, 0, -0.07, 0.27);
-    g.add(blade, tip, edge, guard, handle, pommel);
-    // eldivenli el
-    var hand = new T.Group();
-    var palm = gbox(0.1, 0.13, 0.14, gunMat.skin, 0, -0.05, 0.1);
-    var thumb = gbox(0.07, 0.07, 0.16, gunMat.skin, -0.06, 0.01, -0.02);
-    hand.add(palm, thumb);
-    var sleeve = gbox(0.15, 0.15, 0.24, new T.MeshStandardMaterial({ color: 0x3c4a3a, roughness: 0.9 }), 0, -0.14, 0.2);
-    g.add(hand, sleeve);
-    g.position.set(0.27, -0.3, -0.72);
-    g.rotation.set(0.1, 0.35, 0.08);
-    g.scale.setScalar(0.9);
+    // --- bıçak (kama + testere sırtı + kabza)
+    var blade = gbox(0.028, 0.135, 0.56, gunMat.steel, 0, 0.055, -0.34);
+    var tip = gbox(0.028, 0.075, 0.14, gunMat.steel, 0, 0.115, -0.66);
+    var spine = gbox(0.03, 0.028, 0.54, gunMat.metalLight, 0, 0.125, -0.35);
+    var edge = gbox(0.006, 0.028, 0.54, new T.MeshStandardMaterial({ color: 0xe8eef5, roughness: 0.08, metalness: 1 }), 0, -0.018, -0.35);
+    var guard = gbox(0.085, 0.03, 0.06, gunMat.metalLight, 0, -0.01, -0.03);
+    var handle = gbox(0.05, 0.1, 0.24, gunMat.glovePad, 0, -0.005, 0.14);
+    var pommel = gbox(0.058, 0.085, 0.045, gunMat.metalLight, 0, -0.005, 0.28);
+    g.add(blade, tip, spine, edge, guard, handle, pommel);
+    // --- eldivenli el (kabzayı kavrar)
+    var hand = glovedHand(1);
+    hand.position.set(0, 0, 0.12);
+    hand.rotation.set(0.05, 0, 0.06);
+    g.add(hand);
+    // --- kol (bilekten kameraya doğru)
+    var arm = forearm(gunMat.sleeve, 0.42);
+    arm.position.set(-0.01, -0.12, 0.22);
+    arm.rotation.x = 0.16;
+    g.add(arm);
+    // --- ikinci el (destek) — hafif altta
+    var hand2 = glovedHand(-1);
+    hand2.position.set(0.02, -0.13, 0.2);
+    hand2.rotation.set(0.5, 0, -0.2);
+    hand2.scale.setScalar(0.85);
+    g.add(hand2);
+    var arm2 = forearm(gunMat.sleeve, 0.36);
+    arm2.position.set(0.03, -0.3, 0.3);
+    arm2.rotation.x = 0.5;
+    arm2.scale.set(0.9, 0.9, 1);
+    g.add(arm2);
+    // asıl görünür konum: sağ-alt, bıçak yukarı bakar
+    g.position.set(0.3, -0.33, -0.62);
+    g.rotation.set(0.22, 0.45, 0.12);
+    g.scale.setScalar(1.05);
     return g;
   }
 
@@ -314,12 +372,22 @@
     var rear = gbox(0.03, 0.03, 0.03, gunMat.metalLight, 0, 0.1, -0.02);
     var front = gbox(0.012, 0.028, 0.02, gunMat.metalLight, 0, 0.1, -0.33);
     g.add(slide, barrel, frame, grip, mag, trigger, guard, rear, front);
-    // el
-    var palm = gbox(0.085, 0.16, 0.13, gunMat.skin, 0.02, -0.15, 0.06, 0.28);
-    var fingers = gbox(0.03, 0.14, 0.1, gunMat.skin, -0.045, -0.1, 0.06, 0.2);
-    var thumb = gbox(0.03, 0.11, 0.06, gunMat.skin, 0.045, -0.08, 0.09, 0.3);
-    var sleeve = gbox(0.13, 0.13, 0.24, new T.MeshStandardMaterial({ color: 0x3a4658, roughness: 0.9 }), 0.02, -0.26, 0.22);
-    g.add(palm, fingers, thumb, sleeve);
+    // --- eldivenli eller (iki el kavrar)
+    var h1 = glovedHand(1);
+    h1.position.set(0.005, -0.13, 0.055);
+    h1.rotation.set(0.3, 0, 0.05);
+    h1.scale.setScalar(0.95);
+    var a1 = forearm(gunMat.sleeve2, 0.34);
+    a1.position.set(0.02, -0.3, 0.14);
+    a1.rotation.x = 0.28;
+    var h2 = glovedHand(-1);
+    h2.position.set(-0.055, -0.15, 0.06);
+    h2.rotation.set(0.34, 0, 0.25);
+    h2.scale.setScalar(0.9);
+    var a2 = forearm(gunMat.sleeve2, 0.3);
+    a2.position.set(-0.07, -0.32, 0.15);
+    a2.rotation.x = 0.3;
+    g.add(h1, a1, h2, a2);
     g.position.set(0.165, -0.225, -0.68);
     g.rotation.set(0.02, 0.1, 0);
     return g;
@@ -347,13 +415,22 @@
     g.add(stock);
     var stockPipe = gcyl(0.026, 0.026, 0.16, gunMat.metal, 0, 0.03, 0.24, Math.PI / 2);
     g.add(stockPipe);
-    // el
-    var palm = gbox(0.085, 0.15, 0.13, gunMat.skin, 0.012, -0.14, 0.17, 0.36);
-    var fingers = gbox(0.03, 0.12, 0.11, gunMat.skin, -0.045, -0.09, 0.15, 0.3);
-    var sleeve = gbox(0.14, 0.14, 0.24, new T.MeshStandardMaterial({ color: 0x384a3a, roughness: 0.92 }), 0.02, -0.25, 0.26);
-    var frontHand = gbox(0.1, 0.1, 0.14, gunMat.skin, -0.01, -0.1, -0.42, 0.2);
-    var frontSleeve = gbox(0.13, 0.13, 0.3, new T.MeshStandardMaterial({ color: 0x384a3a, roughness: 0.92 }), -0.04, -0.2, -0.56, 0.1);
-    g.add(palm, fingers, sleeve, frontHand, frontSleeve);
+    // --- eldivenli eller: tetik eli + ön kundak eli
+    var h1 = glovedHand(1);
+    h1.position.set(0.005, -0.135, 0.17);
+    h1.rotation.set(0.38, 0, 0.04);
+    h1.scale.setScalar(0.95);
+    var a1 = forearm(gunMat.sleeve, 0.32);
+    a1.position.set(0.02, -0.3, 0.28);
+    a1.rotation.x = 0.34;
+    var h2 = glovedHand(-1);
+    h2.position.set(-0.005, -0.09, -0.4);
+    h2.rotation.set(0.15, 0, -0.55);
+    h2.scale.setScalar(0.92);
+    var a2 = forearm(gunMat.sleeve, 0.34);
+    a2.position.set(-0.07, -0.2, -0.55);
+    a2.rotation.set(0.12, 0.2, 0.12);
+    g.add(h1, a1, h2, a2);
     g.position.set(0.17, -0.215, -0.8);
     g.rotation.set(0.01, 0.06, 0);
     return g;
@@ -380,13 +457,22 @@
     g.add(fs);
     var rear = gbox(0.05, 0.05, 0.06, gunMat.metal, 0, 0.11, 0.02);
     g.add(rear);
-    // el
-    var palm = gbox(0.085, 0.15, 0.13, gunMat.skin, 0.012, -0.15, 0.17, 0.38);
-    var fingers = gbox(0.03, 0.12, 0.11, gunMat.skin, -0.045, -0.1, 0.15, 0.32);
-    var sleeve = gbox(0.14, 0.14, 0.24, new T.MeshStandardMaterial({ color: 0x40372c, roughness: 0.92 }), 0.02, -0.26, 0.24);
-    var frontHand = gbox(0.1, 0.1, 0.15, gunMat.skin, -0.01, -0.08, -0.42, 0.15);
-    var frontSleeve = gbox(0.13, 0.13, 0.3, new T.MeshStandardMaterial({ color: 0x40372c, roughness: 0.92 }), -0.04, -0.18, -0.58);
-    g.add(palm, fingers, sleeve, frontHand, frontSleeve);
+    // --- eldivenli eller
+    var h1 = glovedHand(1);
+    h1.position.set(0.005, -0.14, 0.17);
+    h1.rotation.set(0.4, 0, 0.04);
+    h1.scale.setScalar(0.95);
+    var a1 = forearm(gunMat.sleeve3, 0.32);
+    a1.position.set(0.02, -0.31, 0.28);
+    a1.rotation.x = 0.36;
+    var h2 = glovedHand(-1);
+    h2.position.set(-0.005, -0.075, -0.4);
+    h2.rotation.set(0.12, 0, -0.6);
+    h2.scale.setScalar(0.92);
+    var a2 = forearm(gunMat.sleeve3, 0.34);
+    a2.position.set(-0.07, -0.19, -0.55);
+    a2.rotation.set(0.1, 0.22, 0.12);
+    g.add(h1, a1, h2, a2);
     g.position.set(0.17, -0.215, -0.8);
     g.rotation.set(0.01, 0.05, 0);
     return g;

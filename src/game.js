@@ -116,6 +116,8 @@
   var fill = new T.DirectionalLight(0x8fb4ff, 0.35);
   fill.position.set(30, 26, -40);
   scene.add(fill);
+  var ambient = new T.AmbientLight(0x8fa7bd, 0.35);
+  scene.add(ambient);
 
   /* ------------------------------------------------------------------
      DOKULAR (prosedürel canvas)
@@ -298,6 +300,9 @@
   };
   TEX.fence.wrapS = TEX.fence.wrapT = T.RepeatWrapping;
 
+  var LAMP_MATS = [];
+  var LAMP_HALOS = [];
+  var LAMP_SPOTS = [];
   var MAT = {
     asphalt: new T.MeshStandardMaterial({ map: TEX.asphalt, roughness: 0.94, metalness: 0.02, color: 0xb9bcc0 }),
     pave: new T.MeshStandardMaterial({ map: TEX.pave, roughness: 0.9, color: 0xd8d4cc }),
@@ -620,10 +625,20 @@
     arm.position.set(flip ? -0.7 : 0.7, 6.15, 0); g.add(arm);
     var head = boxMesh(0.7, 0.18, 0.34, MAT.darkMetal);
     head.position.set(flip ? -1.4 : 1.4, 6.06, 0); g.add(head);
-    var bulb = boxMesh(0.56, 0.06, 0.26, MAT.lampWarm);
+    var bmat = MAT.lampWarm.clone();
+    LAMP_MATS.push(bmat);
+    var bulb = boxMesh(0.62, 0.07, 0.3, bmat);
     bulb.position.set(flip ? -1.4 : 1.4, 5.95, 0); g.add(bulb);
+    // hafif ışık halesi
+    var halo = new T.Mesh(new T.SphereGeometry(0.34, 10, 8),
+      new T.MeshBasicMaterial({ color: 0xffc277, transparent: true, opacity: 0.0, blending: T.AdditiveBlending, depthWrite: false }));
+    halo.position.set(flip ? -1.4 : 1.4, 5.94, 0);
+    g.add(halo);
+    LAMP_HALOS.push(halo);
     g.position.set(x, 0, z); world.add(g);
     addCol(x, z, 0.4, 0.4);
+    // gece için nokta ışığı (düşük maliyet: sadece 4 lamba)
+    if (LAMP_SPOTS.length < 4) LAMP_SPOTS.push({ x: x + (flip ? -1.4 : 1.4), z: z });
     return g;
   }
 
