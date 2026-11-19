@@ -34,7 +34,11 @@ Kafadan vuruş 2.6× hasar. Mesafeyle hasar düşer. 1/2/3 tuşları veya fare t
 - Cephane paketleri (silah başına veya toplu)
 - Ekipman: çelik yelek, sağlık seti, hafif ayakkabı (+%12 hız), matkap namlu (+%14 hasar), zırhlı palto (+25 maks. can)
 
-**Dost botlar — yanında savaşan 2 mahalle koruyucusu**
+**Dost botlar — yanında savaşan 2 mahalle koruyucusu (+ devriyeler)**
+- **Eskiden yanında geziniyorlardı; artık savaşıyorlar:** düşman yokken oyuncunun 2,5–4,5 m çevresinde **mevzi** alırlar, zombi belirdiği anda cepheye koşup ateş ederler (10,5 m çatışma mesafesi, 42 m'ye kadar atış)
+- Hedef seçimi: oyuncuya en çok yaklaşan zombi öncelikli (seni korurlar), duvar arkasındakini A* ile dolaşırlar
+- Oyuncudan 18 m'den fazla uzaklaşırlarsa koşarak geri dönerler (asla haritada başıboş kalmazlar)
+- HUD'da her dost için **MEVZİDE / VURUYOR / DÜŞTÜ** durumu ve üstte "2/4 VURUYOR" sayacı
 - **Mahalle Bekçisi** (165 HP, M4A4) ve **Keskin Nişancı** (145 HP, AK-47), her biri rastgele isim ve yüzle
 - Seni takip ederler, görüş hattı olan düşmanı seçip ateş ederler, seni siper alırlar, birbirlerinden ayrışırlar
 - Başlarında yeşil elmas işaret + radarda yeşil kare, HUD'da can çubukları
@@ -52,28 +56,34 @@ Her dalgada atmosfer baştan kurulur (2,4 sn yumuşak geçiş):
 
 Gökyüzü gradyanı, sis rengi/mesafesi, güneş rengi-şiddeti, ortam ışığı, pozlama ve sokak lambaları birlikte değişir; HUD'da saat göstergesi görünür.
 
-**Düşman evrimi — önce askerler, sonra zombiler** (v1.3)
+**Düşman sadece zombiler — askerler bizim tarafımızda** (v1.3.1)
+
+Devlet güçleri artık düşman değil: **kontrol noktalarından çıkan devriyeler senin yanında savaşıyor.**
+Düşman olarak yalnızca zombiler gelir.
 
 | Dalga | Gelen düşman | Not |
 |---|---|---|
-| 1–2 | 🪖 **Devlet askeri** (150 HP, M4A4) / **Çavuş** (260 HP, AK-47) | kamuflaj, miğfer, çelik yelek, güneş gözlüğü |
-| 3 | karışık: %55 zombi | askerler dağılır, ilk zombiler sokaklara iner |
-| 4 | karışık: %72 zombi | |
+| 1–2 | 🧟 yürüyen ağırlıklı zombiler + az sayıda koşan | |
+| 3–5 | yürüyen / koşan / ilk dev zombiler | |
 | 5 · 10 · 15… | **🔥 BÜYÜK DALGA** | %45 daha kalabalık, siren + kırmızı banner, %60 fazla bonus |
-| 6+ | 🧟 **Zombi sürüsü** (%90) | nadiren asker kalır |
+| 6+ | tam karışık sürü | dev zombi oranı artar |
 
-Zombi tipleri: **Zombi** (110 HP, 2,95 m/s, tırmalama), **Koşan Zombi** (80 HP, 5,1 m/s), **Dev Zombi** (480 HP, 26 hasar, 1,25× boy).
-Zombiler tüfek kullanmaz — kolları ileri uzanmış hâlde koşar, duvar arkasında bile kokudan takip eder (görüş kaybı yavaş), 2 m içinde tırmalar (yüksek hasar, düşük isabet). Ölünce yere yığılır, kan efektleri saçar.
-Radarda zombiler yeşil, askerler kırmızı nokta. Öldürme akışında tip adı yazar (DEVLET ASKERİ, ÇAVUŞ, ZOMBİ, KOŞAN ZOMBİ, DEV ZOMBİ).
+Zombi tipleri: **Zombi** (110 HP, 2,95 m/s), **Koşan Zombi** (80 HP, 5,1 m/s), **Dev Zombi** (480 HP, 26 hasar, 1,25× boy).
+Zombiler tüfek kullanmaz — kolları ileri uzanmış hâlde koşar, duvar arkasında bile kokudan takip eder, 2 m içinde tırmalar. **Dost botları da tırmalayıp düşürebilirler.**
+
+**Devlet devriyeleri (dost askerler)**
+- 1. dalgada 2 devriye kontrol noktalarından çıkıp yanına katılır; her 3. dalgada bir yenisi gelir (en fazla 5)
+- Kamuflaj, miğfer, çelik yelek; 190 HP, M4A4
+- Kontrol noktasından çıkar, sana yetişir, zombileri vurur; kendi can çubukları HUD'da görünür
 
 **Kamera açısı (v1.3)**
 - Görüş açısı 74° → **80°** (dar ekran/portre 88°), nişanda 47°'ye daralır — büyük haritada çevre kontrolü kolay
 - Göz yüksekliği 1,66 → **1,72 m**, kamera 0,12 m öne kaymış ve +0,035 m yukarıda: silah/eller kadrajda dengeli, ufuk göz hizasında
 - Bakış sınırı yukarı 1,4 rad, aşağı 1,5 rad; koşarken hafif FOV genişlemesi
 
-**Düşman botları — rastgele avatarlı ve zeki**
+**Düşman botları — rastgele avatarlı ve zeki** (artık zombiler)
 - Her botta rastgele: ten rengi, saç, gömlek/pantolon/ayakkabı, sakal, bıyık, güneş gözlüğü, maske, şapka/bandana/kask, vücut yapısı (iri/ince) ve isim (Kel Ali, Karaoğlan, Çakal…)
-- Tipler: Serseri, Tetikçi, AKÇI, Kaslı, Bıçakçı + v1.3'te **asker/çavuş** ve **zombi/koşan/dev**
+- Tipler: **zombi / koşan zombi / dev zombi** (eski insan bot tipleri altyapıda duruyor)
 - Zeka: A* yol bulma, görüş hattı kontrolü (duvar arkasını görmez), yan kayma (strafe), mesafe koruma, siper alma, sıkışınca yol yenileme, sürü hâlinde ayrışma, dalga ilerledikçe artan isabet/hız/can
 - Düşmanlar mahallenin karşı tarafındaki açık noktalardan doğar (asla bina içinde, oyuncuya en az 12 m uzakta) ve mahalleye girer
 
@@ -148,7 +158,8 @@ python3 tools/build.py
 
 ## Sürüm geçmişi
 
-- **v1.3.0** — harita 110×110 m'ye büyütüldü (karakol, kontrol noktaları, okul, depo, cami, pazar), devlet askerleri → zombi evrimi, BÜYÜK DALGA, geniş kamera açısı, OBB çarpışma
+- **v1.3.1** — askerler bizim tarafa geçti (devlet devriyeleri), düşman yalnızca zombiler, dost botlar gerçekten savaşıyor (mevzi + cephe)
+- **v1.3.0** — harita 110×110 m'ye büyütüldü (karakol, kontrol noktaları, okul, depo, cami, pazar), BÜYÜK DALGA, geniş kamera açısı, OBB çarpışma
 - **v1.2.0** — 2 dost bot, her dalgada değişen gün saati, eldivenli eller
 - **v1.1.0** — mobil/dokunmatik destek, portre düzeni
 - **v1.0.0** — ilk sürüm: mahalle haritası, botlar, mağaza, bıçak

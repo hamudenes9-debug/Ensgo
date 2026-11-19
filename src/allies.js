@@ -4,19 +4,22 @@
   ================================================================== */
   var allies = [];
   var ALLY_NAMES = ['Kemal Dayı', 'Şahin', 'Yıldız', 'Deli Murat', 'Zeynel', 'Nazmi', 'Kadir'];
+  var PATROL_NAMES = ['Devriye Onbaşı', 'Devriye Er', 'Devriye Çavuş', 'Devriye Komando', 'Devriye Nöbetçi'];
   var ALLY_DEFS = {
-    guard: { name: 'MAHALLE BEKÇİSİ', hp: 165, speed: 4.7, weapon: 'm4a4', dmg: 15, rate: 0.24, color: 0x2f4a7a },
-    shooter: { name: 'KESKİN NİŞANCI', hp: 145, speed: 4.5, weapon: 'ak47', dmg: 21, rate: 0.36, color: 0x2f6b4a }
+    guard: { name: 'MAHALLE BEKÇİSİ', hp: 165, speed: 4.8, weapon: 'm4a4', dmg: 12, rate: 0.28, color: 0x2f4a7a },
+    shooter: { name: 'KESKİN NİŞANCI', hp: 145, speed: 4.6, weapon: 'ak47', dmg: 16, rate: 0.4, color: 0x2f6b4a },
+    devriye: { name: 'DEVRİYE', hp: 190, speed: 4.3, weapon: 'm4a4', dmg: 11, rate: 0.3, color: 0x4a5a3a, soldier: true }
   };
 
-  function Ally(kind, idx) {
+  function Ally(kind, idx, sx, sz, forceName) {
     this.kind = kind;
     var def = ALLY_DEFS[kind];
     this.def = def;
     this.maxHp = def.hp; this.hp = def.hp;
     this.speed = def.speed;
     this.radius = 0.42;
-    this.pos = V3(player.pos.x + (idx === 0 ? -2.2 : 2.2), 0, player.pos.z + 2.5);
+    this.pos = V3(sx !== undefined ? sx : player.pos.x + (idx === 0 ? -2.2 : 2.2), 0,
+      sz !== undefined ? sz : player.pos.z + 2.5);
     this.vel = V3(0, 0, 0);
     this.yaw = player.yaw;
     this.walkPhase = Math.random() * 6.28;
@@ -27,20 +30,28 @@
     this.deadT = 0;
     this.hitFlash = 0;
     this.reviveT = 0;
-    this.name = pick(ALLY_NAMES);
+    this.name = forceName || pick(ALLY_NAMES);
     this.slot = idx;
     this.formT = 0.4;
+    this.spawnProt = 1.2;   // doğduktan sonra kısa dokunulmazlık
 
     // görünüm: takım rengi yelek + şapka, rastgele yüz
     var app = {
-      skin: pick(SKINS), shirt: def.color, pants: 0x232a33, shoes: 0x14161a,
-      hair: pick(HAIRS), scale: rand(1.03, 0.96), build: 'normal',
+      skin: pick(SKINS), shirt: def.color, pants: def.soldier ? 0x39412f : 0x232a33,
+      shoes: 0x14161a, hair: pick(HAIRS), scale: rand(1.03, 0.96), build: 'normal',
       vest: true, hoodie: false, beard: Math.random() < 0.4, mustache: Math.random() < 0.3,
-      shades: Math.random() < 0.3, mask: false, hat: 'cap', hatColor: 0x1c1f24,
-      weapon: def.weapon
+      shades: Math.random() < 0.3, mask: false,
+      hat: def.soldier ? 'helmet' : 'cap', hatColor: def.soldier ? 0x3f4a35 : 0x1c1f24,
+      helmetColor: 0x3f4a35, weapon: def.weapon
     };
     this.app = app;
     var av = buildAvatar(app);
+    if (def.soldier) {   // devlet devriyesi: göğüs plakası
+      var plate = new T.Mesh(new T.BoxGeometry(0.34, 0.3, 0.05),
+        new T.MeshStandardMaterial({ color: 0x2f3a2a, roughness: 0.8 }));
+      plate.position.set(0, 1.22, 0.17);
+      av.root.add(plate);
+    }
     this.av = av;
     this.root = new T.Group();
     this.root.add(av.root);
@@ -69,21 +80,19 @@
     return v.add(this.pos);
   };
 
-  // dost botun en yakın düşmanı bul (görüş hattı + mesafe)
+  // dost botun hedefi: ÖNCE oyuncuya/dosta en yakın tehdit, sonra kendi çevresi
   Ally.prototype.findTarget = function () {
-    var best = null, bestD = 30;
+    var best = null, bestScore = 1e9;
     for (var i = 0; i < bots.length; i++) {
       var b = bots[i];
       if (b.dead || b.spawnT < 0.5) continue;
-      var d = Math.hypot(b.pos.x - this.pos.x, b.pos.z - this.pos.z);
-      if (d >= bestD) continue;
-      if (losBlocked(this.pos.x, this.pos.z, b.pos.x, b.pos.z)) continue;
-      if (Math.random() < 0.5 && this.target && this.target !== b) {
-        // hedef değiştirmeyi yavaşlat
-        var curD = Math.hypot(this.target.pos.x - this.pos.x, this.target.pos.z - this.pos.z);
-        if (curD < d * 1.35) continue;
-      }
-      bestD = d; best = b;
+      var dSelf = Math.hypot(b.pos.x - this.pos.x, b.pos.z - this.pos.z);
+      var dPlayer = Math.hypot(b.pos.x - player.pos.x, b.pos.z - player.pos.z);
+      if (dSelf > 44 && dPlayer > 30) continue;
+      var sees = !losBlocked(this.pos.x, this.pos.z, b.pos.x, b.pos.z);
+      // oyuncuya yaklaşan zombiler öncelikli (koruma), görüş hattı olanlar tercih edilir
+      var score = dSelf * 1.0 + dPlayer * 0.65 + (sees ? 0 : 14);
+      if (score < bestScore) { bestScore = score; best = b; }
     }
     return best;
   };
@@ -110,6 +119,8 @@
     }
     this.deadT = 0;
 
+    if (this.spawnProt > 0) this.spawnProt -= dt;
+
     // doğma efekti
     if (this.formT > 0) {
       this.formT -= dt;
@@ -127,47 +138,100 @@
       }
     }
 
-    // ---- hedef seçimi
+    // ---- hedef seçimi (yakın tehdit önceliği)
     this.think -= dt;
     if (this.think <= 0) {
-      this.think = rand(0.45, 0.22);
+      this.think = rand(0.4, 0.2);
       var t2 = this.findTarget();
       if (t2) this.target = t2;
-      else if (this.target && (this.target.dead || Math.hypot(this.target.pos.x - this.pos.x, this.target.pos.z - this.pos.z) > 34)) this.target = null;
+      else if (this.target) this.target = null;
     }
-    if (this.target && this.target.dead) this.target = null;
+    if (this.target && (this.target.dead || this.target.spawnT < 0.5)) this.target = null;
+    if (this.target) {
+      var dT = Math.hypot(this.target.pos.x - this.pos.x, this.target.pos.z - this.pos.z);
+      if (dT > 46) this.target = null;
+      // hedef çok uzaksa ve daha yakın yeni bir tehdit varsa hemen değiştir
+      else if (dT > 16 && Math.random() < 0.5) {
+        var alt = this.findTarget();
+        if (alt && alt !== this.target &&
+            Math.hypot(alt.pos.x - this.pos.x, alt.pos.z - this.pos.z) < dT * 0.7) this.target = alt;
+      }
+    }
 
-    var desired = V3(0, 0, 0);
     var px = player.pos.x, pz = player.pos.z;
     var pdx = px - this.pos.x, pdz = pz - this.pos.z;
-    var pdist = Math.hypot(pdx, pdz);
+    var pdist = Math.hypot(pdx, pdz) || 1;
 
-    // ---- savaş / takip
+    // ---- MEVZİ: düşman yoksa oyuncunun yakınında (2.5-4.5 m) çevre güvenliği yapar,
+    //      düşman varsa savaşır. Böylece "yanında gezip hiç ateş etmemek" olmaz.
+    if (!this.anchor || this.anchorT <= 0 || Math.hypot(this.anchor.x - px, this.anchor.z - pz) > 7) {
+      var ang = player.yaw + Math.PI + (this.slot === 0 ? -1 : 1) * 1.15;
+      var ax = px + Math.sin(ang) * 3.4, az = pz + Math.cos(ang) * 3.4;
+      this.anchor = { x: ax, z: az };
+      this.anchorT = 2.6;
+    }
+    this.anchorT -= dt;
+
+    var desired = V3(0, 0, 0);
+    // ---- SAVAŞ
     if (this.target) {
       var tx = this.target.pos.x - this.pos.x, tz = this.target.pos.z - this.pos.z;
       var td = Math.hypot(tx, tz) || 1;
-      var range = 13;
-      if (td > range) { desired.x += (tx / td) * this.speed; desired.z += (tz / td) * this.speed; }
-      else if (td < range * 0.45) { desired.x -= (tx / td) * this.speed * 0.8; desired.z -= (tz / td) * this.speed * 0.8; }
-      else { // yan kayma
+      var sees = !losBlocked(this.pos.x, this.pos.z, this.target.pos.x, this.target.pos.z);
+      var range = 10.5;
+      if (td > range) {
+        // cepheye koş (zombi yaklaşırken ona doğru ilerle)
+        desired.x += (tx / td) * this.speed;
+        desired.z += (tz / td) * this.speed;
+      } else if (td < range * 0.4 || (!sees && td < 4)) {
+        desired.x -= (tx / td) * this.speed * 0.9;
+        desired.z -= (tz / td) * this.speed * 0.9;
+      } else {
+        // yan kayarak ateş et
         var side = this.slot === 0 ? 1 : -1;
-        desired.x += (-tz / td) * this.speed * 0.55 * side;
-        desired.z += (tx / td) * this.speed * 0.55 * side;
+        desired.x += (-tz / td) * this.speed * 0.5 * side;
+        desired.z += (tx / td) * this.speed * 0.5 * side;
       }
-      // düşman çok yaklaşırsa geri çekil
-      if (td < 2.5) { desired.x -= (tx / td) * this.speed * 1.2; desired.z -= (tz / td) * this.speed * 1.2; }
+      // zombi dibine geldiyse sıyrıl
+      if (td < 2.2) { desired.x -= (tx / td) * this.speed * 1.4; desired.z -= (tz / td) * this.speed * 1.4; }
+      // görüş yoksa görüş hattı olan yakın noktaya yönel (duvar arkasına saklanmış zombiyi dolaş)
+      if (!sees && td > 5) {
+        var pp = findPath(this.pos.x, this.pos.z, this.target.pos.x, this.target.pos.z);
+        if (pp && pp.length) {
+          var wp = pp[Math.min(1, pp.length - 1)];
+          var wx = wp.x - this.pos.x, wz = wp.z - this.pos.z, wl = Math.hypot(wx, wz) || 1;
+          desired.x += (wx / wl) * this.speed * 0.8;
+          desired.z += (wz / wl) * this.speed * 0.8;
+        }
+      }
+      this.mode = 'fight';
+    } else {
+      // ---- MEVZİDE BEKLE: mevziye dön, kıpırdama; etrafı kolaçan et
+      var anx = this.anchor.x - this.pos.x, anz = this.anchor.z - this.pos.z;
+      var and = Math.hypot(anx, anz);
+      if (and > 1.1) {
+        desired.x += (anx / and) * this.speed * 0.85;
+        desired.z += (anz / and) * this.speed * 0.85;
+      }
+      this.mode = 'guard';
+      // savaşan/yaralanan dost tespiti (HUD için)
     }
-
-    // ---- oyuncudan çok uzaklaşma (takip)
-    if (pdist > 12) {
-      desired.x += (pdx / (pdist || 1)) * this.speed * 1.25;
-      desired.z += (pdz / (pdist || 1)) * this.speed * 1.25;
-    } else if (!this.target && pdist > 4.2) {
-      desired.x += (pdx / (pdist || 1)) * this.speed * 0.8;
-      desired.z += (pdz / (pdist || 1)) * this.speed * 0.8;
-    } else if (!this.target && pdist < 2.6) {
-      desired.x -= (pdx / (pdist || 1)) * this.speed * 0.5;
-      desired.z -= (pdz / (pdist || 1)) * this.speed * 0.5;
+    // oyuncudan kopma: savaşırken 14 m, beklemede 6 m sınırı
+    var leash = this.target ? 14 : 6.5;
+    if (pdist > leash) {
+      desired.x += (pdx / pdist) * this.speed * (this.target ? 1.15 : 1.35);
+      desired.z += (pdz / pdist) * this.speed * (this.target ? 1.15 : 1.35);
+    }
+    // SERT İP: 18 m'den fazla uzaklaştıysa hedefi bırakıp koşarak oyuncuya döner
+    if (pdist > 18) {
+      var sprint = this.speed * (pdist > 30 ? 2.6 : 1.9);
+      desired.x = (pdx / pdist) * sprint;
+      desired.z = (pdz / pdist) * sprint;
+      this.target = null;
+      this.mode = 'rally';
+    } else if (!this.target && pdist < 2.4) {
+      desired.x -= (pdx / pdist) * this.speed * 0.6;
+      desired.z -= (pdz / pdist) * this.speed * 0.6;
     }
 
     // ---- birbirinden ayrış
@@ -242,8 +306,9 @@
     this.fireCd -= dt;
     if (this.target && !this.target.dead && G.state === 'playing') {
       var tdist = Math.hypot(this.target.pos.x - this.pos.x, this.target.pos.z - this.pos.z);
-      if (this.fireCd <= 0 && this.formT <= 0) {
-        this.fireCd = this.def.rate * rand(1.25, 0.85);
+      var tSees = tdist < 3 ? true : !losBlocked(this.pos.x, this.pos.z, this.target.pos.x, this.target.pos.z);
+      if (this.fireCd <= 0 && this.formT <= 0 && tdist < 42 && tSees) {
+        this.fireCd = this.def.rate * rand(1.15, 0.82);
         this.shoot(this.target, tdist);
       }
     }
@@ -253,7 +318,7 @@
     var mz = this.muzzlePos();
     var aim = V3(tgt.pos.x, 1.1 * tgt.app.scale, tgt.pos.z);
     // isabet şansı: mesafeyle düşer
-    var hitChance = clamp(0.86 - dist * 0.022, 0.35, 0.9);
+    var hitChance = clamp(0.72 - dist * 0.02, 0.25, 0.8);
     var hit = Math.random() < hitChance;
     var end = hit ? aim : aim.clone().add(V3(rand(1.8, -1.8), rand(1.2, -1.2), rand(1.8, -1.8)));
     Effects.tracer(mz, end, 0x9ef7c6, 0.07);
@@ -273,7 +338,7 @@
   };
 
   Ally.prototype.takeDamage = function (dmg) {
-    if (this.dead) return;
+    if (this.dead || this.spawnProt > 0) return;
     this.hp -= dmg;
     this.hitFlash = 0.1;
     this.av.root.traverse(function (o) {
@@ -298,6 +363,7 @@
     this.hp = this.maxHp;
     this.deadT = 0;
     this.formT = 0.4;
+    this.spawnProt = 1.6;
     this.root.rotation.z = 0;
     this.root.position.y = 0;
     this.root.traverse(function (o) {
@@ -324,6 +390,24 @@
   }
   function updateAllies(dt) {
     for (var i = 0; i < allies.length; i++) allies[i].update(dt);
+    if (G.state !== 'playing') return;
+    // zombiler dostu da tırmalar (menzildeki en yakın dost)
+    for (var b = 0; b < bots.length; b++) {
+      var z = bots[b];
+      if (z.dead || !z.isZombie || z.meleeCd > 0) continue;
+      for (var a = 0; a < allies.length; a++) {
+        var al = allies[a];
+        if (al.dead || al.spawnProt > 0) continue;
+        var d = Math.hypot(al.pos.x - z.pos.x, al.pos.z - z.pos.z);
+        if (d < 2.05) {
+          z.meleeCd = 1.35;
+          Effects.slash(z.pos, z.yaw);
+          Effects.blood(V3(al.pos.x, 1.2, al.pos.z), 4);
+          al.takeDamage(z.def.bdmg * rand(0.75, 0.4));
+          break;
+        }
+      }
+    }
   }
   // Dost botlar düşman ateşinden pay alır (yakındaki düşman nişanı onlara kayabilir)
   function alliesAbsorbFire() {

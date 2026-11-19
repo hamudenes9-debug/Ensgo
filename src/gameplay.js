@@ -8,7 +8,7 @@
     cross: $('crosshair'), hit: $('hitmarker'), hurt: $('hurt'), banner: $('banner'),
     hint: $('hint'), hitdir: $('hitdir'), dmgLayer: $('dmgLayer'), zoneWarn: $('zoneWarn'),
     radar: $('radar'), allyBox: $('allyBox'), timeIcon: $('timeIcon'),
-    timeName: $('timeName'), timeSub: $('timeSub')
+    timeName: $('timeName'), timeSub: $('timeSub'), allyMode: $('allyMode')
   };
   var radarCtx = HUD.radar ? HUD.radar.getContext('2d') : null;
 
@@ -502,6 +502,36 @@
     return bot;
   }
 
+  // Devlet kontrol noktalarından çıkan devriyeler — bizim tarafımızda savaşırlar
+  var CHECKPOINTS = [
+    { x: -32, z: 4, rot: 0 }, { x: -32, z: -26, rot: 0 },
+    { x: 28, z: 4, rot: 0 }, { x: -10, z: -38, rot: Math.PI }
+  ];
+  var patrols = [];
+  function spawnPatrol(cpIdx) {
+    var cp = CHECKPOINTS[cpIdx % CHECKPOINTS.length];
+    var side = (cpIdx % 2 === 0 ? 1 : -1);
+    var pname = PATROL_NAMES[cpIdx % PATROL_NAMES.length];
+    var a = new Ally('devriye', cpIdx + 2, cp.x + side * 4.6, cp.z + 2.8, pname);
+    a.checkpoint = cpIdx % CHECKPOINTS.length;
+    patrols.push(a);
+    allies.push(a);
+    Effects.sparks(V3(a.pos.x, 1.2, a.pos.z), 8, 0x9ecb6a);
+    hint('DEVRİYE KATILDI — ' + a.name + ' (/kontrol noktası)', 1.8);
+    return a;
+  }
+  function spawnPatrols() {
+    for (var i = 0; i < CHECKPOINTS.length; i++) spawnPatrol(i);
+  }
+  function clearPatrols() {
+    for (var i = 0; i < patrols.length; i++) {
+      var idx = allies.indexOf(patrols[i]);
+      if (idx >= 0) allies.splice(idx, 1);
+      if (patrols[i].root) scene.remove(patrols[i].root);
+    }
+    patrols.length = 0;
+  }
+
   function waveCount(w) {
     return Math.min(30, 4 + Math.round(w * 2.1));
   }
@@ -517,37 +547,35 @@
     G.spawnTimer = 0.6;
     G.spawnQueue = [];
         var total = waveCount(n);
-    // ---- DÜŞMAN KOMPOZİSYONU
-    // 1-2. dalga: devlet kontrol noktası askerleri · 3-5: karışık (asker+zombi)
-    // 6+: zombi sürüsü · her 5. dalga BÜYÜK DALGA (bonus + daha çok düşman)
+    // ---- DÜŞMAN KOMPOZİSYONU: sadece zombiler (yürüyen/koşan/dev)
+    // her 5. dalga BÜYÜK DALGA (bonus + daha çok düşman)
     G.bigWave = (n % 5 === 0);
     if (G.bigWave) total = Math.round(total * 1.45) + 4;
-    var isSoldierWave = n <= 2;
-    var mixedWave = n === 3 || n === 4 || n === 5;
+
+    // ---- DÜŞMAN DAİMA ZOMBİ. Askerler (devlet) artık BİZİM tarafımızda:
+    // 1. dalgada kontrol noktalarından 2 devriye katılır, her 3 dalgada bir yenisi gelir.
+    var isZombieWave = true;
     for (var i = 0; i < total; i++) {
       var roll = Math.random();
       var type;
-      if (isSoldierWave) {
-        type = (n >= 2 && roll > 0.72) ? 'sergeant' : 'soldier';
-      } else if (mixedWave) {
-        // askerler dağılmaya başlar, zombiler sokaklara iner
-        var zShare = n === 3 ? 0.55 : (n === 4 ? 0.72 : 0.85);
-        if (roll < zShare) {
-          if (roll < 0.16) type = 'runner';
-          else if (n >= 5 && roll > 0.42 && roll < 0.54) type = 'brute';
-          else type = 'walker';
-        } else {
-          type = roll > (zShare + (1 - zShare) * 0.65) ? 'sergeant' : 'soldier';
-        }
+      if (n <= 2) {
+        // ilk dalgalar: yürüyen ağırlıklı, az sayıda koşan
+        type = roll < 0.82 ? 'walker' : 'runner';
+      } else if (n <= 5) {
+        type = roll < 0.55 ? 'walker' : (roll < 0.86 ? 'runner' : 'brute');
       } else {
-        // zombi sürüsü
-        if (roll < 0.5) type = 'walker';
-        else if (roll < 0.78) type = 'runner';
-        else if (roll < 0.9) type = 'brute';
-        else type = (n % 3 === 0 && roll > 0.96) ? 'sergeant' : 'soldier';
+        type = roll < 0.46 ? 'walker' : (roll < 0.76 ? 'runner' : (roll < 0.94 ? 'brute' : 'walker'));
+        if (G.bigWave && roll > 0.9) type = 'brute';
       }
       G.spawnQueue.push(type);
     }
+    // dalga 1: 2 devriye, sonra her 3. dalgada bir yeni devriye (en fazla 5)
+    if (n === 1) {
+      spawnPatrol(0); spawnPatrol(1);
+    } else if (n % 3 === 0 && patrols.length < 5) {
+      spawnPatrol(patrols.length % CHECKPOINTS.length);
+    }
+    if (n === 1) hint('DEVLET DEVRİYELERİ YANINDA — düşman sadece zombiler!', 3.4);
     G.enemiesLeft = G.spawnQueue.length;
     HUD.waveNo.textContent = 'DALGA ' + n;
     // her dalgada zaman değişir: şafak → öğle → gün batımı → gece
@@ -560,9 +588,7 @@
     } else {
       banner('DALGA ' + n, (TIMES[(n - 1) % TIMES.length].icon + ' ' + TIMES[(n - 1) % TIMES.length].name + ' · ' + TIMES[(n - 1) % TIMES.length].sub), 2.4);
       Audio2.wave();
-      var tag = isSoldierWave ? 'Devlet kontrol noktası askerleri geliyor' :
-        (mixedWave ? 'Askerler ve zombiler karışık geliyor' : 'Zombi sürüsü mahalleye giriyor');
-      hint(tag + ' — tel örgü hattını tut!', 3.2);
+      hint('Zombi sürüsü mahalleye giriyor — devriyeler ve dostlar yanında!', 3.2);
     }
     G.state = 'playing';
     requestLock();
@@ -592,7 +618,7 @@
     for (var i = 0; i < bots.length; i++) if (!bots[i].dead) alive++;
     var left = alive + G.spawnQueue.length;
     G.enemiesLeft = left;
-    HUD.waveInfo.innerHTML = 'Kalan düşman: <b>' + left + '</b>';
+    HUD.waveInfo.innerHTML = '🧟 Kalan zombi: <b>' + left + '</b>' + (patrols.length ? ' · 🪖 ' + patrols.filter(function (p) { return !p.dead; }).length + ' devriye' : '');
   }
 
   function waveComplete() {
@@ -823,6 +849,7 @@
     $('pause').classList.add('hidden');
     HUD.hud.classList.add('on');
     spawnAllies();
+    clearPatrols();
     // başlangıç: bıçak + tabanca, 500 TL
     requestLock();
     setTimeout(function () { G.suppressPause = false; }, 300);
@@ -845,7 +872,7 @@
   }
   function toMenu() {
     exitLock();
-    clearBots(); clearPickups(); clearAllies();
+    clearBots(); clearPickups(); clearPatrols(); clearAllies();
     G.state = 'menu';
     HUD.hud.classList.remove('on');
     $('pause').classList.add('hidden');
@@ -881,10 +908,11 @@
       if (G.state === 'playing') {
         queueSpawnLogic(dt);
         updatePickups(dt);
-        updateAllies(dt);
         InteractionTick(dt);
       }
     }
+    // dostlar mağaza (dalga arası) ekranında da canlı kalır: dirilme sayacı işler
+    if (G.state === 'playing' || G.state === 'shop') updateAllies(dt);
     Effects.update(dt);
     updateTimeOfDay(dt);
     updateStars(dt);
@@ -983,20 +1011,28 @@
     if (!HUD.allyBox) return;
     allyHudT -= dt;
     if (allyHudT > 0) return;
-    allyHudT = 0.18;
-    var html = '';
+    allyHudT = 0.15;
+    var html = '', fighting = 0;
     for (var i = 0; i < allies.length; i++) {
       var a = allies[i];
       var ratio = a.dead ? 0 : clamp(a.hp / a.maxHp, 0, 1);
       var rev = a.dead ? Math.max(0, Math.ceil(8 - a.deadT)) + 'sn' : Math.ceil(a.hp);
-      html += '<div class="ally' + (a.dead ? ' dead' : '') + '">' +
+      var mode = a.dead ? 'dead' : (a.target ? 'fight' : 'guard');
+      if (a.target && !a.dead) fighting++;
+      var label = a.dead ? 'DÜŞTÜ' : (a.target ? 'VURUYOR' : 'MEVZİDE');
+      html += '<div class="ally ' + mode + '">' +
         '<i class="dot"></i>' +
-        '<span class="nm">' + a.name + '</span>' +
+        '<span class="nm">' + (a.def && a.def.soldier ? '🪖 ' : '') + a.name + '</span>' +
         '<span class="bar2"><b style="transform:scaleX(' + ratio + ')"></b></span>' +
         '<span class="rev">' + rev + '</span>' +
+        '<span class="st">' + label + '</span>' +
         '</div>';
     }
     HUD.allyBox.innerHTML = html;
+    if (HUD.allyMode) {
+      HUD.allyMode.textContent = fighting ? (fighting + '/' + allies.length + ' VURUYOR') : (allies.length + ' HAZIR');
+      HUD.allyMode.style.color = fighting ? '#ffd479' : '#6ef2b0';
+    }
   }
   function updateTimeHud() {
     if (G.lastTimeShown === G.timeIdx) return;
@@ -1213,7 +1249,10 @@
     sun: sun, hemi: hemi, ambient: ambient, skyDome: function () { return skyDome; },
     items: SHOP_ITEMS, weapons: WEAPONS, hurt: hurtPlayer, spawn: spawnBot,
     openShop: openShop, los: losBlocked, findPath: findPath, grid: grid, GN: GN, CELL: CELL,
-    HALF: HALF, COL: COL, pickups: pickups, syncCam: function () {
+    HALF: HALF, COL: COL, pickups: pickups, patrols: patrols, checkpoints: CHECKPOINTS,
+    allyTypes: typeof ALLY_TYPES !== 'undefined' ? ALLY_TYPES : null,
+    enemyTypes: typeof ENEMY_TYPES !== 'undefined' ? ENEMY_TYPES : null,
+    spawnPatrol: spawnPatrol, syncCam: function () {
       camera.position.set(player.pos.x, player.eyeCur + player.jumpY, player.pos.z);
       camera.rotation.set(player.pitch, player.yaw, 0);
       camera.updateMatrixWorld(true);

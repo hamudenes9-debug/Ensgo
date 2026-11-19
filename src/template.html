@@ -80,6 +80,18 @@
   .ally .bar2 > b{position:absolute;inset:0;background:linear-gradient(90deg,#2be08a,#6ef2b0);transform-origin:left center;transition:transform .2s}
   .ally.dead .bar2 > b{background:var(--red)}
   .ally .rev{font-size:9.5px;color:#ff9aa5;letter-spacing:.5px}
+  .ally .st{margin-left:auto;font-size:8.5px;letter-spacing:.6px;padding:1.5px 4px;border-radius:3px;
+    background:rgba(110,242,176,.14);color:#8ff0c0;white-space:nowrap;flex:0 0 auto}
+  .ally.fight{border-color:rgba(255,196,60,.55);background:rgba(24,16,6,.62)}
+  .ally.fight .st{background:rgba(255,196,60,.2);color:#ffd479}
+  .ally.help{border-color:rgba(255,77,94,.6);background:rgba(30,8,10,.66)}
+  .ally.help .st{background:rgba(255,77,94,.22);color:#ff9aa5}
+  .ally.dead .st{background:rgba(0,0,0,.35);color:#9aa7b3}
+  #allyHead{font-size:9px;letter-spacing:2px;color:#7f93a6;font-weight:800;margin-bottom:-1px;
+    display:flex;justify-content:space-between}
+  #allyHead b{color:var(--mint)}
+  body.touch #allyHead{font-size:8px;letter-spacing:1px}
+  @media (max-width:560px){ #allyHead{display:none} }
   #timeBox{position:absolute;left:50%;top:64px;transform:translateX(-50%);display:flex;align-items:center;gap:7px;
     background:rgba(8,14,18,.55);border:1px solid rgba(255,255,255,.10);border-radius:20px;
     padding:5px 13px;font-size:11.5px;font-weight:800;letter-spacing:1.6px;color:#dfe8f2;
@@ -402,6 +414,7 @@
     </div>
 
     <div id="moneyWrap"><div id="money">0<span class="gain">+0</span></div></div>
+    <div id="allyHead"><span>DOST BOTLAR</span><b id="allyMode">YANINDA</b></div>
     <div id="allyBox"></div>
     <div id="timeBox"><span id="timeIcon">🌅</span><b id="timeName">ŞAFAK</b><i id="timeSub">SİS ÇÖKÜYOR</i></div>
     <div id="killfeed"></div>
@@ -428,10 +441,11 @@
     <div class="card">
       <h1 class="title">TEL ÖRGÜ MAHALLE</h1>
       <div class="tagline">
-        Büyük mahalle tel örgüyle çevrili. Önce <b>devlet kontrol noktası askerleri</b> gelir,
-        sonra sokaklara <b>zombiler</b> iner — her 5. dalga <b>BÜYÜK DALGA</b>. Rastgele avatarlı,
-        zeki düşmanlar; yanında iki dost bot vurur. Parayı topla, mağazadan
-        <b>AK-47</b>, <b>M4A4</b> ve <b>tabanca</b> al. Cebinde her zaman <b>bıçak</b> var.
+        Büyük mahalle tel örgüyle çevrili. <b>Devlet devriyeleri senin tarafında</b> —
+        kontrol noktalarından çıkıp yanında savaşırlar. Düşman <b>sadece zombiler</b>:
+        yürüyen, koşan ve dev zombiler her dalgada sokaklara iner; her 5. dalga
+        <b>BÜYÜK DALGA</b>. Yanında 2 dost bot + devriyeler vurur, sen de vurursun.
+        Parayı topla, mağazadan <b>AK-47</b>, <b>M4A4</b> ve <b>tabanca</b> al.
       </div>
       <div class="btnrow">
         <button class="btn" id="playBtn">OYUNA GİR</button>

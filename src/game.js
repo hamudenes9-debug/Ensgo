@@ -48,6 +48,12 @@
 
   // bdmg = botun oyuncuya verdiği hasar (oyuncu silahlarından bağımsız dengelenmiş)
   // Devlet kontrol noktası askerleri (ilk dalgalar) + zombiler (sonraki dalgalar)
+  // Bizim tarafımızdaki devlet devriyesi (düşman değil, dost asker)
+  var ALLY_TYPES = {
+    devriye: { key: 'devriye', name: 'DEVRİYE', hp: 190, speed: 4.4, weapon: 'm4a4', dmg: 16, rate: 0.26,
+      color: 0x4a5a3a, alive: true }
+  };
+
   var ENEMY_TYPES = {
     soldier: { key: 'soldier', name: 'DEVLET ASKERİ', hp: 150, speed: 3.1, weapon: 'm4a4', money: 120,
       acc: 0.115, react: 0.42, bdmg: 13, brate: 0.5, soldier: true },
