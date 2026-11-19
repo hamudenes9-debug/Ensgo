@@ -17,4 +17,7 @@ assert "</script" not in game.lower(), "oyun kodunda </script> var!"
 out = tpl.replace("/*__THREE_LIB__*/", three).replace("/*__GAME_JS__*/", game)
 dist = root / "index.html"
 dist.write_text(out, encoding="utf-8")
-print(f"index.html yazıldı: {len(out)/1024:.0f} KB")
+# sürüm/dağıtım kopyası (ASCII ad — indirme bağlantıları için güvenli)
+rel = root / "Tel-Orgu-Mahalle.html"
+rel.write_text(out, encoding="utf-8")
+print(f"index.html + Tel-Orgu-Mahalle.html yazıldı: {len(out)/1024:.0f} KB")
