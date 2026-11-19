@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>TEL ÖRGÜ MAHALLE — Mahalle Kuşatması</title>
+<style>
+  :root{
+    --accent:#ff8a3d;
+    --accent2:#ffd166;
+    --mint:#6ef2b0;
+    --red:#ff4d5e;
+    --panel:rgba(10,13,18,.78);
+    --panel-2:rgba(18,23,31,.92);
+    --line:rgba(255,255,255,.10);
+    --txt:#eef3f8;
+    --dim:#93a1b3;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0a0c10;color:var(--txt);
+    font-family:"Segoe UI",Roboto,"Trebuchet MS",system-ui,-apple-system,sans-serif;}
+  body{cursor:default; user-select:none}
+  #app{position:fixed;inset:0;overflow:hidden}
+  canvas#game{display:block;width:100%;height:100%}
+  .hidden{display:none !important}
+
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s}
+  #hud.on{opacity:1}
+
+  #crosshair{position:absolute;left:50%;top:50%;width:64px;height:64px;transform:translate(-50%,-50%);
+    --sp:7px}
+  #crosshair .tick{position:absolute;background:rgba(255,255,255,.92);box-shadow:0 0 3px rgba(0,0,0,.9);border-radius:1px}
+  #crosshair .t{width:2px;height:8px;left:31px;top:calc(32px - var(--sp) - 8px)}
+  #crosshair .b{width:2px;height:8px;left:31px;top:calc(32px + var(--sp))}
+  #crosshair .l{height:2px;width:8px;top:31px;left:calc(32px - var(--sp) - 8px)}
+  #crosshair .r{height:2px;width:8px;top:31px;left:calc(32px + var(--sp))}
+  #crosshair .dot{position:absolute;width:2px;height:2px;left:31px;top:31px;background:#fff;border-radius:50%;opacity:.85}
+  #crosshair.hit .tick{background:var(--red)}
+  #crosshair.head .tick{background:var(--accent2)}
+
+  #hitmarker{position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%) scale(.6);
+    opacity:0;transition:opacity .09s, transform .09s}
+  #hitmarker.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #hitmarker i{position:absolute;width:10px;height:2px;background:#fff;border-radius:2px;box-shadow:0 0 6px rgba(255,255,255,.8)}
+  #hitmarker i:nth-child(1){left:0;top:5px;transform:rotate(45deg)}
+  #hitmarker i:nth-child(2){right:0;top:5px;transform:rotate(-45deg)}
+  #hitmarker i:nth-child(3){left:0;bottom:5px;transform:rotate(-45deg)}
+  #hitmarker i:nth-child(4){right:0;bottom:5px;transform:rotate(45deg)}
+  #hitmarker.kill i{background:var(--red);width:13px}
+
+  #hpWrap{position:absolute;left:26px;bottom:24px;width:270px}
+  .bar{position:relative;height:14px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.16);
+    border-radius:3px;overflow:hidden;margin-top:7px;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+  .bar > b{position:absolute;inset:0;width:100%;transform-origin:left center;transition:transform .16s ease-out}
+  #hpBar > b{background:linear-gradient(90deg,#2be08a,#6ef2b0)}
+  #armorBar > b{background:linear-gradient(90deg,#3f8bff,#7cc4ff)}
+  .bar.low > b{background:linear-gradient(90deg,#ff2d55,#ff7a5e) !important}
+  .bar span{position:absolute;right:7px;top:-1px;font-size:11px;font-weight:800;letter-spacing:.5px;
+    line-height:14px;text-shadow:0 1px 2px #000}
+  .lbl{font-size:10.5px;letter-spacing:2.4px;color:#aebdcd;font-weight:700}
+  #weaponBox{position:absolute;right:26px;bottom:24px;text-align:right;min-width:230px}
+  #weaponName{font-size:15px;font-weight:800;letter-spacing:2px;color:#dfe8f2;text-transform:uppercase}
+  #ammo{font-size:44px;font-weight:900;line-height:1;letter-spacing:1px;text-shadow:0 3px 14px rgba(0,0,0,.8)}
+  #ammo small{font-size:19px;color:var(--dim);font-weight:700}
+  #ammo.low{color:var(--red)}
+  #money{position:absolute;right:26px;top:22px;font-size:23px;font-weight:900;color:var(--mint);
+    text-shadow:0 2px 12px rgba(0,0,0,.7);letter-spacing:.5px}
+  #money::before{content:"₺";font-size:17px;margin-right:2px;opacity:.8}
+  #money .gain{position:absolute;right:0;top:30px;font-size:16px;color:var(--mint);opacity:0;
+    font-weight:800;transition:opacity .25s, transform .5s}
+  #money .gain.on{opacity:1;transform:translateY(-8px)}
+
+  #waveBox{position:absolute;left:50%;top:20px;transform:translateX(-50%);text-align:center}
+  #waveNo{font-size:12px;letter-spacing:4px;color:var(--accent);font-weight:800}
+  #waveInfo{font-size:19px;font-weight:800;letter-spacing:1px;text-shadow:0 2px 10px #000;margin-top:2px}
+  #waveInfo b{color:var(--red)}
+
+  #radarBox{position:absolute;left:22px;top:20px;width:186px;height:186px;border-radius:50%;
+    border:1px solid rgba(255,255,255,.18);background:rgba(6,10,14,.62);
+    box-shadow:0 8px 30px rgba(0,0,0,.45), inset 0 0 40px rgba(0,0,0,.6);overflow:hidden}
+  #radar{width:100%;height:100%;display:block}
+  #radarLabel{position:absolute;left:50%;bottom:-20px;transform:translateX(-50%);font-size:10px;
+    letter-spacing:3px;color:#7f8fa1;font-weight:700}
+
+  #killfeed{position:absolute;right:24px;top:74px;display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+  .kf{background:var(--panel);border:1px solid var(--line);padding:4px 9px;border-radius:3px;font-size:12.5px;
+    font-weight:700;animation:kfIn .18s ease-out;border-left:2px solid var(--accent)}
+  .kf .k{color:var(--accent2)}
+  .kf .v{color:#ff8d9a}
+  .kf .mt{color:#6b7a8c;font-size:10.5px;margin-left:6px}
+  @keyframes kfIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+
+  #hurt{position:absolute;inset:0;pointer-events:none;opacity:0;
+    background:radial-gradient(ellipse at center, transparent 38%, rgba(190,0,20,.62) 100%);
+    transition:opacity .3s}
+  #hitdir{position:absolute;inset:0;pointer-events:none}
+  #hitdir .a{position:absolute;left:50%;top:50%;width:0;height:0;border-left:44px solid transparent;
+    border-right:44px solid transparent;border-bottom:70px solid rgba(255,60,80,.55);
+    transform-origin:50% 0;opacity:0;margin-left:-44px}
+
+  #banner{position:absolute;left:0;right:0;top:32%;text-align:center;pointer-events:none;opacity:0;
+    transition:opacity .4s}
+  #banner.on{opacity:1}
+  #banner .big{font-size:60px;font-weight:900;letter-spacing:10px;color:#fff;
+    text-shadow:0 0 40px rgba(255,120,50,.6),0 6px 0 rgba(0,0,0,.35)}
+  #banner .sub{font-size:16px;letter-spacing:5px;color:var(--accent);font-weight:800;margin-top:6px}
+
+  #dmgLayer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .dnum{position:absolute;font-weight:900;font-size:18px;color:#fff;text-shadow:0 2px 6px #000;
+    animation:dnumUp .8s ease-out forwards}
+  .dnum.head{color:var(--accent2);font-size:23px}
+  @keyframes dnumUp{0%{opacity:0;transform:translate(-50%,0) scale(.7)}
+    18%{opacity:1;transform:translate(-50%,-10px) scale(1.05)}
+    100%{opacity:0;transform:translate(-50%,-56px) scale(.95)}}
+
+  #hint{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);font-size:12.5px;
+    color:#b8c6d4;background:var(--panel);padding:7px 14px;border-radius:20px;border:1px solid var(--line);
+    letter-spacing:.4px;opacity:0;transition:opacity .3s;white-space:nowrap}
+  #hint.on{opacity:1}
+  #hint kbd{background:#2a3441;border:1px solid #46566a;border-bottom-width:2px;border-radius:3px;
+    padding:1px 5px;font-size:11px;color:#fff;font-family:inherit;font-weight:800}
+
+  /* ---------- Overlays ---------- */
+  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 0%, rgba(255,138,61,.10), transparent 60%),
+      linear-gradient(180deg, rgba(5,8,12,.86), rgba(5,8,12,.94));
+    backdrop-filter:blur(7px);z-index:20}
+  .card{width:min(880px,92vw);background:linear-gradient(160deg, rgba(23,29,38,.96), rgba(12,16,22,.98));
+    border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:34px 38px;
+    box-shadow:0 40px 120px rgba(0,0,0,.7), 0 0 0 1px rgba(255,138,61,.12) inset}
+  h1.title{margin:0;font-size:clamp(30px,5.2vw,60px);font-weight:900;letter-spacing:6px;line-height:.98;
+    background:linear-gradient(180deg,#fff,#ffc79a 60%,#ff8a3d);-webkit-background-clip:text;
+    background-clip:text;color:transparent;text-shadow:0 0 60px rgba(255,138,61,.18)}
+  .tagline{margin:10px 0 24px;color:#a6b5c6;font-size:14px;letter-spacing:1px;line-height:1.6}
+  .tagline b{color:var(--accent2)}
+  .btnrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  button{font-family:inherit;cursor:pointer;border:none;outline:none}
+  .btn{background:linear-gradient(180deg,#ff9b52,#ef7420);color:#221204;font-weight:900;letter-spacing:2.4px;
+    font-size:14px;padding:15px 34px;border-radius:5px;box-shadow:0 10px 26px rgba(239,116,32,.28),
+    inset 0 1px 0 rgba(255,255,255,.45);transition:transform .12s, filter .12s}
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:rgba(255,255,255,.06);color:#dbe6f2;border:1px solid rgba(255,255,255,.14);
+    box-shadow:none;font-weight:800;letter-spacing:2px}
+  .btn.ghost:hover{background:rgba(255,255,255,.11)}
+  .btn:disabled{opacity:.38;cursor:not-allowed;transform:none;filter:grayscale(.6)}
+
+  .cols{display:grid;grid-template-columns:1.15fr .85fr;gap:26px;margin-top:22px}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}.card{padding:24px}}
+  .ctrl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:12.5px;color:#b5c3d2;align-items:center}
+  .ctrl kbd{justify-self:start;background:#222b36;border:1px solid #3b4a5c;border-bottom-width:2px;
+    border-radius:4px;padding:3px 8px;font-family:inherit;font-size:11px;font-weight:800;color:#eaf2fb}
+  .side{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:6px;padding:16px}
+  .side h3{margin:0 0 10px;font-size:11px;letter-spacing:3px;color:var(--dim);font-weight:800}
+  .rangeRow{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;
+    color:#b8c6d4;margin:11px 0}
+  input[type=range]{-webkit-appearance:none;height:4px;background:#33404f;border-radius:3px;width:120px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+    background:var(--accent);cursor:pointer;box-shadow:0 0 0 3px rgba(255,138,61,.18)}
+  #bestLine{margin-top:14px;font-size:12px;color:#8ea0b4}
+  #bestLine b{color:var(--accent2)}
+
+  /* Shop */
+  #shop .card{width:min(1040px,95vw);padding:26px 30px}
+  .shopHead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:14px}
+  .shopHead h2{margin:0;font-size:24px;letter-spacing:4px;font-weight:900}
+  .shopHead .money{font-size:26px;font-weight:900;color:var(--mint)}
+  .shopHead .sub{font-size:11.5px;color:var(--dim);letter-spacing:2px;margin-top:4px}
+  .tabs{display:flex;gap:6px;margin:16px 0 12px}
+  .tab{font-size:11px;letter-spacing:2px;font-weight:800;color:#9aabbd;padding:8px 14px;border-radius:4px;
+    background:rgba(255,255,255,.04);border:1px solid transparent;cursor:pointer}
+  .tab.on{color:#fff;background:rgba(255,138,61,.14);border-color:rgba(255,138,61,.45)}
+  .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:11px;
+    max-height:min(47vh,430px);overflow:auto;padding-right:4px}
+  .item{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:6px;padding:12px 13px;
+    display:flex;flex-direction:column;gap:7px;transition:border-color .15s, background .15s}
+  .item:hover{border-color:rgba(255,138,61,.4);background:rgba(255,138,61,.055)}
+  .item .nm{font-size:14px;font-weight:900;letter-spacing:1px}
+  .item .ds{font-size:11px;color:#93a3b4;line-height:1.45;min-height:31px}
+  .item .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
+  .item .pr{font-size:13.5px;font-weight:900;color:var(--mint)}
+  .buy{font-size:11px;font-weight:900;letter-spacing:1.4px;padding:7px 11px;border-radius:4px;
+    background:rgba(255,138,61,.16);color:#ffbf8f;border:1px solid rgba(255,138,61,.4);cursor:pointer}
+  .buy:hover{background:rgba(255,138,61,.28)}
+  .buy:disabled{opacity:.35;cursor:not-allowed}
+  .buy.owned{background:rgba(110,242,176,.12);color:var(--mint);border-color:rgba(110,242,176,.35)}
+  .shopFoot{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:16px;
+    border-top:1px solid var(--line);padding-top:14px;flex-wrap:wrap}
+  .keys{font-size:11.5px;color:var(--dim)}
+  .keys kbd{background:#222b36;border:1px solid #3b4a5c;border-bottom-width:2px;border-radius:3px;
+    padding:1px 5px;font-family:inherit;font-size:10.5px;color:#dbe6f2}
+
+  /* Game over */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:20px 0}
+  .stat{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:6px;padding:12px}
+  .stat b{display:block;font-size:24px;font-weight:900;color:var(--accent2);line-height:1.15}
+  .stat span{font-size:10px;letter-spacing:2px;color:var(--dim);font-weight:800}
+  #deadTitle{font-size:clamp(28px,4.4vw,46px);font-weight:900;letter-spacing:8px;
+    background:linear-gradient(180deg,#fff,#ff8d9a);-webkit-background-clip:text;background-clip:text;
+    color:transparent;margin:0}
+
+  #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:50;
+    background:#0a0c10;transition:opacity .4s}
+  #loading .l{text-align:center}
+  #loading .t{font-size:12px;letter-spacing:6px;color:var(--accent);font-weight:800;margin-top:14px}
+  .spin{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.12);
+    border-top-color:var(--accent);margin:0 auto;animation:sp 0.9s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  #zoneWarn{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);font-size:12px;
+    letter-spacing:2px;font-weight:800;color:#ffb27a;background:rgba(10,13,18,.8);padding:6px 14px;
+    border-radius:3px;border:1px solid rgba(255,138,61,.35);opacity:0;transition:opacity .3s}
+
+  @media (max-width:640px){
+    #radarBox{width:120px;height:120px}
+    #hpWrap{width:180px;left:14px;bottom:14px}
+    #weaponBox{right:14px;bottom:14px;min-width:140px}
+    #ammo{font-size:30px}
+    #money{right:14px;top:14px;font-size:18px}
+    #crosshair{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <!-- ===== HUD ===== -->
+  <div id="hud">
+    <div id="crosshair">
+      <div class="tick t"></div><div class="tick b"></div><div class="tick l"></div><div class="tick r"></div>
+      <div class="dot"></div>
+    </div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+    <div id="dmgLayer"></div>
+    <div id="hurt"></div>
+    <div id="hitdir"></div>
+
+    <div id="radarBox">
+      <canvas id="radar" width="186" height="186"></canvas>
+      <div id="radarLabel">MAHALLE RADARI</div>
+    </div>
+
+    <div id="waveBox">
+      <div id="waveNo">DALGA 1</div>
+      <div id="waveInfo">Kalan düşman: <b>0</b></div>
+    </div>
+
+    <div id="money">0<span class="gain">+0</span></div>
+    <div id="killfeed"></div>
+
+    <div id="hpWrap">
+      <div class="lbl">SAĞLIK</div>
+      <div class="bar" id="hpBar"><b></b><span>100</span></div>
+      <div class="lbl" style="margin-top:9px">ZIRH</div>
+      <div class="bar" id="armorBar"><b></b><span>0</span></div>
+    </div>
+
+    <div id="weaponBox">
+      <div id="weaponName">BIÇAK</div>
+      <div id="ammo"><span id="ammoNow">—</span> <small id="ammoRes">/ —</small></div>
+    </div>
+
+    <div id="banner"><div class="big">DALGA 1</div><div class="sub">HAZIR OL</div></div>
+    <div id="hint"></div>
+    <div id="zoneWarn">MAĞAZA AÇIK — B</div>
+  </div>
+
+  <!-- ===== START ===== -->
+  <div id="start" class="overlay">
+    <div class="card">
+      <h1 class="title">TEL ÖRGÜ MAHALLE</h1>
+      <div class="tagline">
+        Mahalle tel örgüyle çevrili, sokaklar boş değil. <b>Karşıdan botlar geliyor</b> —
+        rastgele avatarlı, silahlı ve zeki. Dalgaları savuştur, parayı topla, mağazadan
+        <b>AK-47</b>, <b>M4A4</b> ve <b>tabanca</b> al. Cebinde her zaman <b>bıçak</b> var.
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="playBtn">OYUNA GİR</button>
+        <button class="btn ghost" id="howBtn">NASIL OYNANIR</button>
+      </div>
+      <div class="cols">
+        <div id="ctrlBox">
+          <div class="ctrl">
+            <kbd>W A S D</kbd><span>Hareket</span>
+            <kbd>FARE</kbd><span>Nişan al</span>
+            <kbd>SOL TIK</kbd><span>Ateş</span>
+            <kbd>SAĞ TIK</kbd><span>Nişan modu (yakınlaştır)</span>
+            <kbd>SHIFT</kbd><span>Koş</span>
+            <kbd>CTRL</kbd><span>Çömel</span>
+            <kbd>BOŞLUK</kbd><span>Zıpla</span>
+            <kbd>R</kbd><span>Şarjör değiştir</span>
+            <kbd>1 2 3</kbd><span>Bıçak / Tabanca / Tüfek</span>
+            <kbd>B</kbd><span>Mağaza (dalga arası)</span>
+            <kbd>ESC</kbd><span>Duraklat</span>
+            <kbd>M</kbd><span>Sesi kapat / aç</span>
+          </div>
+        </div>
+        <div class="side">
+          <h3>AYARLAR</h3>
+          <div class="rangeRow"><span>Fare hassasiyeti</span><input id="sens" type="range" min="0.3" max="2.6" step="0.05" value="1"></div>
+          <div class="rangeRow"><span>Ses</span><input id="vol" type="range" min="0" max="1" step="0.05" value="0.7"></div>
+          <div class="rangeRow"><span>Grafik</span><input id="qual" type="range" min="0" max="2" step="1" value="1"></div>
+          <div id="bestLine">En iyi: <b>—</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAUSE ===== -->
+  <div id="pause" class="overlay hidden">
+    <div class="card" style="max-width:460px">
+      <h1 class="title" style="font-size:34px;letter-spacing:5px">DURAKLATILDI</h1>
+      <div class="tagline">Mahalle seni bekliyor.</div>
+      <div class="btnrow">
+        <button class="btn" id="resumeBtn">DEVAM ET</button>
+        <button class="btn ghost" id="quitBtn">ANA MENÜ</button>
+      </div>
+      <div class="side" style="margin-top:18px">
+        <h3>AYARLAR</h3>
+        <div class="rangeRow"><span>Fare hassasiyeti</span><input id="sens2" type="range" min="0.3" max="2.6" step="0.05" value="1"></div>
+        <div class="rangeRow"><span>Ses</span><input id="vol2" type="range" min="0" max="1" step="0.05" value="0.7"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SHOP ===== -->
+  <div id="shop" class="overlay hidden">
+    <div class="card">
+      <div class="shopHead">
+        <div>
+          <h2>MAHALLE MAĞAZASI</h2>
+          <div class="sub">DALGA <span id="shopWave">1</span> BİTTİ — <span id="shopTime">20</span> SN</div>
+        </div>
+        <div class="money" id="shopMoney">₺0</div>
+      </div>
+      <div class="tabs">
+        <div class="tab on" data-tab="weapons">SİLAHLAR</div>
+        <div class="tab" data-tab="ammo">CEPHANE</div>
+        <div class="tab" data-tab="gear">EKİPMAN</div>
+      </div>
+      <div class="items" id="shopItems"></div>
+      <div class="shopFoot">
+        <div class="keys"><kbd>B</kbd> devam et <div class="keys"><kbd>B</kbd> mağazayı kapat &nbsp;·&nbsp; <kbd>ENTER</kbd> sonraki dalga</div>nbsp;·<div class="keys"><kbd>B</kbd> mağazayı kapat &nbsp;·&nbsp; <kbd>ENTER</kbd> sonraki dalga</div>nbsp; <kbd>ENTER</kbd> sonraki dalga <div class="keys"><kbd>B</kbd> mağazayı kapat &nbsp;·&nbsp; <kbd>ENTER</kbd> sonraki dalga</div>nbsp;·<div class="keys"><kbd>B</kbd> mağazayı kapat &nbsp;·&nbsp; <kbd>ENTER</kbd> sonraki dalga</div>nbsp; <kbd>ESC</kbd> duraklat</div>
+        <button class="btn" id="nextWaveBtn">SONRAKİ DALGA</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GAME OVER ===== -->
+  <div id="over" class="overlay hidden">
+    <div class="card">
+      <h1 id="deadTitle">MAHALLE DÜŞTÜ</h1>
+      <div class="tagline" id="overSub">Botlar mahalleyi ele geçirdi. Ama intikam soğuk yenir.</div>
+      <div class="stats" id="overStats"></div>
+      <div class="btnrow">
+        <button class="btn" id="againBtn">TEKRAR OYNA</button>
+        <button class="btn ghost" id="menuBtn">ANA MENÜ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading"><div class="l"><div class="spin"></div><div class="t">MAHALLE YÜKLENİYOR</div></div></div>
+</div>
+
+<script>/*__THREE_LIB__*/</script>
+<script>/*__GAME_JS__*/</script>
+</body>
+</html>
