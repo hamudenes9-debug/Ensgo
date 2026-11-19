@@ -10,7 +10,7 @@ three = lib.read_text(encoding="utf-8")
 # güvenlik: script kapanışı gömülü kütüphanede olmamalı
 assert "</script" not in three.lower(), "three.min.js içinde </script> var!"
 
-parts = ["game.js", "audio.js", "bots.js", "gameplay.js"]
+parts = ["game.js", "audio.js", "bots.js", "mobile.js", "gameplay.js"]
 game = "\n".join((root / "src" / p).read_text(encoding="utf-8") for p in parts)
 assert "</script" not in game.lower(), "oyun kodunda </script> var!"
 

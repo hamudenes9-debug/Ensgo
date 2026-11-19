@@ -45,7 +45,26 @@ Kafadan vuruş 2.6× hasar. Mesafeyle hasar düşer. 1/2/3 tuşları veya fare t
 - Can yenilenmesi (7 sn hasar almazsan), düşen sağlık/cephane paketleri
 - Prosedürel WebAudio sesleri (silah, sekme, bıçak, adım, hasar, dalga)
 - Grafik kalitesi / hassasiyet / ses ayarları, en iyi dalga kaydı (localStorage)
-- Duraklatma, oyun sonu istatistikleri, mobil dokunmatik desteği
+- Duraklatma, oyun sonu istatistikleri
+
+## 📱 Mobil (dokunmatik) destek
+
+Telefon/tablet algılanınca arayüz otomatik olarak dokunmatik moda geçer:
+
+| Kontrol | İşlev |
+|---|---|
+| **Sanal joystick** (sol alt) | Hareket — sonuna kadar itince otomatik koşu |
+| **Ekranı sürükle** (sağ yarı) | Bakış / nişan |
+| **⊕ ATEŞ** | Basılı tut = seri ateş |
+| **◉ NİŞAN** | Yakınlaştırma aç/kapa |
+| **↑ ZIPLA** | Zıpla |
+| **ŞARJÖR** (mermi sayısı yazar) | Şarjör değiştir; boşalınca kırmızı yanıp titrer |
+| **SİLAH** (silah adı yazar) | Silah değiştir |
+| **₺ MAĞAZA** | Mağazayı aç/kapat |
+| **II** (sağ üst) | Duraklat |
+| **⛶ TAM EKRAN + YATAY** (menüde) | Tam ekran + yatay kilidi |
+
+Ek olarak mobilde: ~25° koni içinde hafif **nişan yardımı**, %35 geniş isabet alanı, azaltılmış crosshair açılması, titreşim geri bildirimi (destekleyen cihazlarda), çentik/güvenli alan desteği, dikey modda yeniden düzenlenen HUD ve "telefonu yatır" önerisi.
 
 ## Kontroller
 

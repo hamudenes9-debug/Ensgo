@@ -21,7 +21,10 @@
     font-family:"Segoe UI",Roboto,"Trebuchet MS",system-ui,-apple-system,sans-serif;}
   body{cursor:default; user-select:none}
   #app{position:fixed;inset:0;overflow:hidden}
-  canvas#game{display:block;width:100%;height:100%}
+  canvas#game{display:block;width:100%;height:100%;touch-action:none}
+  html,body{touch-action:manipulation;overscroll-behavior:none}
+  body.touch{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  body.touch #app{touch-action:none}
   .hidden{display:none !important}
 
   /* ---------- HUD ---------- */
@@ -64,10 +67,11 @@
   #ammo{font-size:44px;font-weight:900;line-height:1;letter-spacing:1px;text-shadow:0 3px 14px rgba(0,0,0,.8)}
   #ammo small{font-size:19px;color:var(--dim);font-weight:700}
   #ammo.low{color:var(--red)}
-  #money{position:absolute;right:26px;top:22px;font-size:23px;font-weight:900;color:var(--mint);
+  #moneyWrap{position:absolute;right:26px;top:22px}
+  #money{position:relative;font-size:23px;font-weight:900;color:var(--mint);
     text-shadow:0 2px 12px rgba(0,0,0,.7);letter-spacing:.5px}
   #money::before{content:"₺";font-size:17px;margin-right:2px;opacity:.8}
-  #money .gain{position:absolute;right:0;top:30px;font-size:16px;color:var(--mint);opacity:0;
+  #money .gain{position:absolute;right:0;top:26px;font-size:16px;color:var(--mint);opacity:0;
     font-weight:800;transition:opacity .25s, transform .5s}
   #money .gain.on{opacity:1;transform:translateY(-8px)}
 
@@ -213,19 +217,143 @@
     letter-spacing:2px;font-weight:800;color:#ffb27a;background:rgba(10,13,18,.8);padding:6px 14px;
     border-radius:3px;border:1px solid rgba(255,138,61,.35);opacity:0;transition:opacity .3s}
 
+
+  /* ================= MOBİL / DOKUNMATİK ================= */
+  body.touch{cursor:auto}
+  .touchOnly{display:none}
+  body.touch .card{max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  body.touch #hint{bottom:auto;top:76px;font-size:12px}
+  body.touch .buy{padding:11px 14px;font-size:12px}
+  body.touch .items{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));max-height:42vh}
+  body.touch .tab{padding:11px 14px}
+  body.touch .btn{padding:17px 30px}
+  body.touch #banner .big{font-size:40px;letter-spacing:6px}
+  body.touch #banner{top:26%}
+  body.touch #killfeed{top:60px;right:14px}
+  body.touch .kf{font-size:11px;padding:3px 7px}
+  body.touch .overlay{padding:10px}
+  body.touch .deskOnly{display:none}
+  body.touch .touchOnly{display:block}
+  #ctrlTouch .ctrl{margin-top:0}
+  #mobile{position:absolute;inset:0;pointer-events:none;z-index:12;opacity:0;transition:opacity .3s;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  #mobile.playing{opacity:1}
+  #mobile.playing > *{pointer-events:auto}
+  #stick{position:absolute;left:22px;bottom:26px;width:132px;height:132px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.20);background:radial-gradient(circle at 50% 45%, rgba(255,255,255,.10), rgba(10,14,19,.46));
+    box-shadow:inset 0 0 26px rgba(0,0,0,.45), 0 6px 22px rgba(0,0,0,.35);
+    touch-action:none;display:flex;align-items:center;justify-content:center}
+  #stick::after{content:"";position:absolute;inset:16%;border-radius:50%;border:1px dashed rgba(255,255,255,.10)}
+  #stick.active{border-color:rgba(255,138,61,.65);background:radial-gradient(circle at 50% 45%, rgba(255,138,61,.16), rgba(10,14,19,.5))}
+  #stickKnob{width:58px;height:58px;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%, #ffffff, #cfd8e2 45%, #8e9bab);
+    box-shadow:0 4px 14px rgba(0,0,0,.5), inset 0 -2px 6px rgba(0,0,0,.25);
+    transition:transform .08s ease-out;display:flex;align-items:center;justify-content:center}
+  #stickKnob::after{content:"";width:20px;height:20px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%, rgba(255,138,61,.95), rgba(200,80,10,.55))}
+  .mbtn{position:absolute;border-radius:50%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:1px;color:#fff;font-weight:900;letter-spacing:.6px;
+    background:radial-gradient(circle at 40% 32%, rgba(255,255,255,.22), rgba(16,22,30,.72));
+    border:1.5px solid rgba(255,255,255,.22);backdrop-filter:blur(4px);
+    box-shadow:0 6px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.22);
+    touch-action:none;user-select:none;-webkit-user-select:none}
+  .mbtn span{font-size:10px;line-height:1;opacity:.85}
+  .mbtn b{font-size:15px;line-height:1}
+  .mbtn.down{transform:scale(.93);filter:brightness(1.25)}
+  .mbtn.on{border-color:rgba(255,138,61,.9);background:radial-gradient(circle at 40% 32%, rgba(255,175,110,.5), rgba(60,30,10,.8));
+    box-shadow:0 0 18px rgba(255,138,61,.45)}
+  #mFire{right:24px;bottom:120px;width:96px;height:96px;
+    background:radial-gradient(circle at 40% 32%, rgba(255,140,90,.45), rgba(120,26,16,.72));
+    border-color:rgba(255,120,90,.55)}
+  #mFire b{font-size:30px;line-height:1}
+  #mAds{right:132px;bottom:120px;width:66px;height:66px}
+  #mAds.on{border-color:rgba(110,242,176,.9);background:radial-gradient(circle at 40% 32%, rgba(110,242,176,.35), rgba(10,40,26,.8))}
+  #mJump{right:132px;bottom:196px;width:58px;height:58px;font-size:18px}
+  #mReload{right:24px;bottom:226px;width:64px;height:64px}
+  #mReload.empty{border-color:rgba(255,77,94,.9);animation:pulseRed 1s infinite}
+  #mSwitch{right:100px;bottom:24px;width:64px;height:64px}
+  #mSwitch b{font-size:10.5px;max-width:56px;text-align:center;line-height:1.1}
+  #mShop{right:176px;bottom:36px;width:54px;height:54px}
+  #mPause{right:16px;top:14px;width:46px;height:46px;font-size:15px}
+  @keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 rgba(255,77,94,.55)}50%{box-shadow:0 0 0 12px rgba(255,77,94,0)}}
+  #rotateHint{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:rgba(10,12,16,.93);color:#eef3f8;text-align:center;font-size:15px;letter-spacing:1px;padding:28px;
+    pointer-events:none;transition:opacity .35s}
+  #rotateHint div{max-width:320px;line-height:1.7}
+  #rotateHint b{color:var(--accent);letter-spacing:3px;display:block;margin-bottom:10px;font-size:13px}
+  body.touch #rotateHint.force{display:flex}
+  @media (orientation:portrait){
+    body.touch #rotateHint{display:flex}
+  }
+  @media (max-height:460px){
+    #stick{width:110px;height:110px;left:16px;bottom:16px}
+    #stickKnob{width:48px;height:48px}
+    #mFire{width:82px;height:82px;right:18px;bottom:104px}
+    #mAds{width:56px;height:56px;right:112px;bottom:104px}
+    #mJump{width:50px;height:50px;right:112px;bottom:170px}
+    #mReload{width:56px;height:56px;right:18px;bottom:198px}
+    #mSwitch{width:56px;height:56px;right:88px;bottom:18px}
+    #mShop{width:46px;height:46px;right:154px;bottom:26px}
+    #radarBox{width:104px;height:104px;left:12px;top:10px}
+    #hpWrap{width:132px;left:16px;bottom:138px}
+    #hpWrap .lbl{font-size:9px;letter-spacing:1.6px}
+    #hpWrap .bar{height:11px}
+    #weaponBox{right:240px;bottom:12px;min-width:120px}
+    #ammo{font-size:26px}
+    #moneyWrap{right:12px;top:64px}
+    #money{font-size:16px}
+    #waveBox{top:8px}
+    #waveInfo{font-size:15px}
+  }
+  @media (max-width:900px){
+    #mobile{display:block}
+  }
+  @media (orientation:portrait){
+    body.touch #radarBox{width:112px;height:112px;left:12px;top:12px}
+    body.touch #waveBox{top:14px}
+    body.touch #waveInfo{font-size:14px}
+    body.touch #moneyWrap{position:absolute;right:14px;top:12px}
+    body.touch #money{font-size:17px;text-align:right}
+    body.touch #hpWrap{bottom:210px}
+    body.touch #weaponBox{bottom:auto;top:64px;right:14px}
+    body.touch #ammo{font-size:26px}
+    body.touch #crosshair{width:54px;height:54px}
+    body.touch #stick{width:118px;height:118px;left:16px;bottom:20px}
+    body.touch #mFire{right:20px;bottom:150px}
+    body.touch #mAds{right:120px;bottom:150px}
+    body.touch #mJump{right:120px;bottom:222px}
+    body.touch #mReload{right:20px;bottom:254px}
+    body.touch #mSwitch{right:96px;bottom:20px}
+    body.touch #mShop{right:168px;bottom:30px}
+  }
+
   @media (max-width:640px){
     #radarBox{width:120px;height:120px}
     #hpWrap{width:180px;left:14px;bottom:14px}
     #weaponBox{right:14px;bottom:14px;min-width:140px}
     #ammo{font-size:30px}
-    #money{right:14px;top:14px;font-size:18px}
-    #crosshair{display:none}
+    #moneyWrap{right:14px;top:14px}
+    #money{font-size:18px}
+    #crosshair{opacity:.9}
   }
 </style>
 </head>
 <body>
 <div id="app">
   <canvas id="game"></canvas>
+
+
+  <!-- ===== MOBİL DOKUNMATİK KONTROLLER ===== -->
+  <div id="mobile" class="hidden">
+    <div id="stick" aria-label="Hareket joysticki"><div id="stickKnob"></div></div>
+    <div class="mbtn" id="mFire"><b>⊕</b><span>ATEŞ</span></div>
+    <div class="mbtn" id="mAds"><b>◉</b><span>NİŞAN</span></div>
+    <div class="mbtn" id="mJump"><b>↑</b><span>ZIPLA</span></div>
+    <div class="mbtn" id="mReload"><b id="mReloadLabel">12</b><span>ŞARJÖR</span></div>
+    <div class="mbtn" id="mSwitch"><b id="mSwitchLabel">TABANCA</b><span>SİLAH</span></div>
+    <div class="mbtn" id="mShop"><b>₺</b><span>MAĞAZA</span></div>
+    <div class="mbtn" id="mPause"><b>II</b></div>
+  </div>
 
   <!-- ===== HUD ===== -->
   <div id="hud">
@@ -248,7 +376,7 @@
       <div id="waveInfo">Kalan düşman: <b>0</b></div>
     </div>
 
-    <div id="money">0<span class="gain">+0</span></div>
+    <div id="moneyWrap"><div id="money">0<span class="gain">+0</span></div></div>
     <div id="killfeed"></div>
 
     <div id="hpWrap">
@@ -280,9 +408,10 @@
       <div class="btnrow">
         <button class="btn" id="playBtn">OYUNA GİR</button>
         <button class="btn ghost" id="howBtn">NASIL OYNANIR</button>
+        <button class="btn ghost hidden" id="mFullscreen">⛶ TAM EKRAN + YATAY</button>
       </div>
       <div class="cols">
-        <div id="ctrlBox">
+        <div id="ctrlBox" class="deskOnly">
           <div class="ctrl">
             <kbd>W A S D</kbd><span>Hareket</span>
             <kbd>FARE</kbd><span>Nişan al</span>
@@ -296,6 +425,18 @@
             <kbd>B</kbd><span>Mağaza (dalga arası)</span>
             <kbd>ESC</kbd><span>Duraklat</span>
             <kbd>M</kbd><span>Sesi kapat / aç</span>
+          </div>
+        </div>
+        <div id="ctrlTouch" class="touchOnly">
+          <div class="ctrl">
+            <kbd>JOYSTICK</kbd><span>Hareket (sol alt)</span>
+            <kbd>SÜRÜKLE</kbd><span>Bakış / nişan (sağ taraf)</span>
+            <kbd>⊕</kbd><span>Ateş</span>
+            <kbd>◉</kbd><span>Nişan modu aç/kapa</span>
+            <kbd>↑</kbd><span>Zıpla</span>
+            <kbd>ŞARJÖR</kbd><span>Şarjör değiştir</span>
+            <kbd>SİLAH</kbd><span>Silah değiştir</span>
+            <kbd>₺</kbd><span>Mağaza</span>
           </div>
         </div>
         <div class="side">
@@ -361,6 +502,8 @@
       </div>
     </div>
   </div>
+
+  <div id="rotateHint"><div><b>TELEFONU YATIR</b>Oyun yatay (landscape) modda tasarlandı.<br>Cihazı yan çevir ve ekrana dokun.</div></div>
 
   <div id="loading"><div class="l"><div class="spin"></div><div class="t">MAHALLE YÜKLENİYOR</div></div></div>
 </div>

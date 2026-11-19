@@ -64,6 +64,7 @@
   }
   var hitTimer = 0;
   function showHitmarker(kill, head) {
+    if (MOBILE.enabled && MOBILE.buzz) MOBILE.buzz(kill ? 45 : 18);
     HUD.hit.classList.add('on');
     HUD.hit.classList.toggle('kill', !!kill);
     hitTimer = kill ? 0.22 : 0.1;
@@ -110,6 +111,29 @@
     return t > 0.05 ? t : -1;
   }
 
+  // Dokunmatikte hafif nişan yardımı: görüş konisi içindeki en yakın düşmana yön çekme
+  function aimAssist(dir, org) {
+    if (!MOBILE.enabled) return false;
+    var best = null, bestDot = 0.90;   // ~25 derecelik koni
+    for (var i = 0; i < bots.length; i++) {
+      var b = bots[i];
+      if (b.dead || b.spawnT < 0.5) continue;
+      var d = Math.hypot(b.pos.x - org.x, b.pos.z - org.z);
+      if (d > 45) continue;
+      if (losBlocked(org.x, org.z, b.pos.x, b.pos.z)) continue;
+      var tgt = V3(b.pos.x, 1.15 * b.app.scale, b.pos.z).sub(org);
+      var l = tgt.length();
+      if (l < 0.5) continue;
+      tgt.divideScalar(l);
+      var dot = tgt.dot(dir);
+      if (dot > bestDot) { bestDot = dot; best = tgt; }
+    }
+    if (!best) return false;
+    var strength = 0.55 + clamp((bestDot - 0.90) / 0.10, 0, 1) * 0.4;
+    dir.lerp(best, strength).normalize();
+    return true;
+  }
+
   function shootHitscan(spread, dmg, headMul) {
     var dir = V3(0, 0, -1).applyQuaternion(camera.quaternion);
     dir.x += rand(spread, -spread);
@@ -117,6 +141,7 @@
     dir.z += rand(spread, -spread) * 0.3;
     dir.normalize();
     var org = camera.position.clone();
+    aimAssist(dir, org);
     var best = null, bestT = 999, bestHead = false;
 
     for (var i = 0; i < bots.length; i++) {
@@ -125,9 +150,10 @@
       // duvar arkasında mı
       if (losBlocked(org.x, org.z, b.pos.x, b.pos.z)) continue;
       var s = b.app.scale;
-      var th = raySphere(org, dir, V3(b.pos.x, 1.62 * s, b.pos.z), 0.27 * s);
-      var tc = raySphere(org, dir, V3(b.pos.x, 1.12 * s, b.pos.z), 0.4 * s);
-      var tl = raySphere(org, dir, V3(b.pos.x, 0.6 * s, b.pos.z), 0.37 * s);
+      var hb = MOBILE.enabled ? 1.35 : 1;   // dokunmatikte daha cömert isabet alanı
+      var th = raySphere(org, dir, V3(b.pos.x, 1.62 * s, b.pos.z), 0.27 * s * hb);
+      var tc = raySphere(org, dir, V3(b.pos.x, 1.12 * s, b.pos.z), 0.4 * s * hb);
+      var tl = raySphere(org, dir, V3(b.pos.x, 0.6 * s, b.pos.z), 0.37 * s * hb);
       var bt = 999, head = false;
       if (th > 0 && th < bt) { bt = th; head = true; }
       if (tc > 0 && tc < bt) { bt = tc; head = false; }
@@ -218,7 +244,10 @@
     G.shotT = 0.12;
   }
 
-  function ADS() { return mouse.rdown && !wdef().melee && G.state === 'playing'; }
+  function ADS() {
+    var on = mouse.rdown || (MOBILE.enabled && MOBILE.ads);
+    return on && !wdef().melee && G.state === 'playing';
+  }
 
   /* ==================================================================
      OYUNCU GÜNCELLEME
@@ -230,10 +259,19 @@
     // ---- hareket girdisi
     var f = (keys['w'] ? 1 : 0) - (keys['s'] ? 1 : 0);
     var s = (keys['d'] ? 1 : 0) - (keys['a'] ? 1 : 0);
+    // mobil joystick
+    var joyMag = 0;
+    if (MOBILE.enabled) {
+      var mx = MOBILE.move.x, my = MOBILE.move.y;
+      if (Math.abs(mx) > 0.08 || Math.abs(my) > 0.08) {
+        f = clamp(my, -1, 1); s = clamp(mx, -1, 1);
+        joyMag = Math.min(1, Math.hypot(mx, my));
+      }
+    }
     var len = Math.hypot(f, s);
     if (len > 1) { f /= len; s /= len; }
     p.crouch = !!keys['control'] && p.onGround;
-    var wantSprint = !!keys['shift'] && f > 0 && !ADS() && !p.crouch && p.fireCd <= 0;
+    var wantSprint = !!(keys['shift'] || joyMag > 0.93) && f > 0.35 && !ADS() && !p.crouch && p.fireCd <= 0;
     if (wantSprint) p.sprintT = Math.min(1, p.sprintT + dt * 4); else p.sprintT = Math.max(0, p.sprintT - dt * 6);
     p.sprint = p.sprintT > 0.4;
 
@@ -292,7 +330,7 @@
     p.fireCd = Math.max(0, p.fireCd - dt);
     p.switchT = Math.max(0, p.switchT - dt);
     p.bloom = Math.max(0, p.bloom - dt * 2.6);
-    if (mouse.down && (w.auto || p.wantFire)) {
+    if ((mouse.down || (MOBILE.enabled && MOBILE.firing)) && (w.auto || p.wantFire || (MOBILE.enabled && MOBILE.firing))) {
       if (p.fireCd <= 0) fireWeapon();
     }
     p.wantFire = false;
@@ -333,6 +371,8 @@
       var by = vm.userData.by !== undefined ? vm.userData.by : (vm.userData.by = vm.position.y);
       var bz = vm.userData.bz !== undefined ? vm.userData.bz : (vm.userData.bz = vm.position.z);
       var adsK = p.adsAmt;
+      // mobilde geniş görüş açısı nedeniyle silahı biraz büyüt
+      vHold.scale.setScalar(MOBILE.enabled ? 1.18 : 1);
       var aimX = lerp(bx, 0.0, adsK), aimY = lerp(by, -0.10, adsK), aimZ = lerp(bz, bz + 0.06, adsK);
       // sallanma
       aimX += Math.sin(p.bob * 2.6) * 0.014 * bobAmp * (1 - adsK * 0.6);
@@ -365,6 +405,7 @@
 
     // ---- hızlanınca crosshair aç
     var spreadPx = 7 + (1 - (p.adsAmt || 0)) * 6 + Math.hypot(p.vel.x, p.vel.z) * 1.4 + p.bloom * 9;
+    if (MOBILE.enabled) spreadPx *= 0.75;
     HUD.cross.style.setProperty('--sp', spreadPx.toFixed(1) + 'px');
   }
   function adsAmtOr(p) { return p.adsAmt === undefined ? 0 : p.adsAmt; }
@@ -380,6 +421,7 @@
     player.hp -= d;
     player.lastHitT = G.t;
     G.hitFlash = 0.5;
+    if (MOBILE.enabled && MOBILE.buzz) MOBILE.buzz(70);
     G.shake = Math.min(0.5, G.shake + 0.18);
     Audio2.hurt();
     if (fromPos) showHitDir(fromPos);
@@ -677,7 +719,7 @@
      OYUN AKIŞI
   ================================================================== */
   function requestLock() {
-    if (G.state !== 'playing') return;
+    if (G.state !== 'playing' || IS_TOUCH) return;
     try {
       var pr = canvas.requestPointerLock && canvas.requestPointerLock();
       if (pr && pr.catch) pr.catch(function () {});
@@ -825,6 +867,7 @@
     G.t += dt;
     if (G.state !== 'menu') simulate(dt);
     else Effects.update(dt);
+    mobileSync();
     drawRadar();
     renderAll();
   }
@@ -1044,6 +1087,7 @@
   }
   resizeView();
   bindUI();
+  initMobileUI();
   updateBest();
   updateAmmoHud();
   updateHealthHud();
@@ -1067,6 +1111,8 @@
     G: G, player: player, bots: bots, camera: camera, scene: scene, T: T,
     fire: fireWeapon, melee: meleeAttack, startWave: startWave, buy: buyItem,
     viewCam: viewCam, viewScene: viewScene, vmList: vmList, vmHold: vHold,
+    mobile: MOBILE, isTouch: IS_TOUCH, ads: ADS, reload: tryReload, switchW: switchWeapon,
+    toggleShop: toggleShop, pause: pauseGame, resume: resumeGame,
     items: SHOP_ITEMS, weapons: WEAPONS, hurt: hurtPlayer, spawn: spawnBot,
     openShop: openShop, los: losBlocked, findPath: findPath, grid: grid, GN: GN, CELL: CELL,
     HALF: HALF, COL: COL, pickups: pickups, syncCam: function () {
@@ -1077,6 +1123,7 @@
     tick: function (dt, render) {
       G.t += dt;
       simulate(dt);
+      mobileSync();
       drawRadar();
       if (render) renderAll();
     },
