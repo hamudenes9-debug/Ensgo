@@ -21,7 +21,10 @@
     font-family:"Segoe UI",Roboto,"Trebuchet MS",system-ui,-apple-system,sans-serif;}
   body{cursor:default; user-select:none}
   #app{position:fixed;inset:0;overflow:hidden}
-  canvas#game{display:block;width:100%;height:100%}
+  canvas#game{display:block;width:100%;height:100%;touch-action:none}
+  html,body{touch-action:manipulation;overscroll-behavior:none}
+  body.touch{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  body.touch #app{touch-action:none}
   .hidden{display:none !important}
 
   /* ---------- HUD ---------- */
@@ -64,10 +67,11 @@
   #ammo{font-size:44px;font-weight:900;line-height:1;letter-spacing:1px;text-shadow:0 3px 14px rgba(0,0,0,.8)}
   #ammo small{font-size:19px;color:var(--dim);font-weight:700}
   #ammo.low{color:var(--red)}
-  #money{position:absolute;right:26px;top:22px;font-size:23px;font-weight:900;color:var(--mint);
+  #moneyWrap{position:absolute;right:26px;top:22px}
+  #money{position:relative;font-size:23px;font-weight:900;color:var(--mint);
     text-shadow:0 2px 12px rgba(0,0,0,.7);letter-spacing:.5px}
   #money::before{content:"₺";font-size:17px;margin-right:2px;opacity:.8}
-  #money .gain{position:absolute;right:0;top:30px;font-size:16px;color:var(--mint);opacity:0;
+  #money .gain{position:absolute;right:0;top:26px;font-size:16px;color:var(--mint);opacity:0;
     font-weight:800;transition:opacity .25s, transform .5s}
   #money .gain.on{opacity:1;transform:translateY(-8px)}
 
@@ -213,19 +217,143 @@
     letter-spacing:2px;font-weight:800;color:#ffb27a;background:rgba(10,13,18,.8);padding:6px 14px;
     border-radius:3px;border:1px solid rgba(255,138,61,.35);opacity:0;transition:opacity .3s}
 
+
+  /* ================= MOBİL / DOKUNMATİK ================= */
+  body.touch{cursor:auto}
+  .touchOnly{display:none}
+  body.touch .card{max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  body.touch #hint{bottom:auto;top:76px;font-size:12px}
+  body.touch .buy{padding:11px 14px;font-size:12px}
+  body.touch .items{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));max-height:42vh}
+  body.touch .tab{padding:11px 14px}
+  body.touch .btn{padding:17px 30px}
+  body.touch #banner .big{font-size:40px;letter-spacing:6px}
+  body.touch #banner{top:26%}
+  body.touch #killfeed{top:60px;right:14px}
+  body.touch .kf{font-size:11px;padding:3px 7px}
+  body.touch .overlay{padding:10px}
+  body.touch .deskOnly{display:none}
+  body.touch .touchOnly{display:block}
+  #ctrlTouch .ctrl{margin-top:0}
+  #mobile{position:absolute;inset:0;pointer-events:none;z-index:12;opacity:0;transition:opacity .3s;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  #mobile.playing{opacity:1}
+  #mobile.playing > *{pointer-events:auto}
+  #stick{position:absolute;left:22px;bottom:26px;width:132px;height:132px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.20);background:radial-gradient(circle at 50% 45%, rgba(255,255,255,.10), rgba(10,14,19,.46));
+    box-shadow:inset 0 0 26px rgba(0,0,0,.45), 0 6px 22px rgba(0,0,0,.35);
+    touch-action:none;display:flex;align-items:center;justify-content:center}
+  #stick::after{content:"";position:absolute;inset:16%;border-radius:50%;border:1px dashed rgba(255,255,255,.10)}
+  #stick.active{border-color:rgba(255,138,61,.65);background:radial-gradient(circle at 50% 45%, rgba(255,138,61,.16), rgba(10,14,19,.5))}
+  #stickKnob{width:58px;height:58px;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%, #ffffff, #cfd8e2 45%, #8e9bab);
+    box-shadow:0 4px 14px rgba(0,0,0,.5), inset 0 -2px 6px rgba(0,0,0,.25);
+    transition:transform .08s ease-out;display:flex;align-items:center;justify-content:center}
+  #stickKnob::after{content:"";width:20px;height:20px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%, rgba(255,138,61,.95), rgba(200,80,10,.55))}
+  .mbtn{position:absolute;border-radius:50%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:1px;color:#fff;font-weight:900;letter-spacing:.6px;
+    background:radial-gradient(circle at 40% 32%, rgba(255,255,255,.22), rgba(16,22,30,.72));
+    border:1.5px solid rgba(255,255,255,.22);backdrop-filter:blur(4px);
+    box-shadow:0 6px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.22);
+    touch-action:none;user-select:none;-webkit-user-select:none}
+  .mbtn span{font-size:10px;line-height:1;opacity:.85}
+  .mbtn b{font-size:15px;line-height:1}
+  .mbtn.down{transform:scale(.93);filter:brightness(1.25)}
+  .mbtn.on{border-color:rgba(255,138,61,.9);background:radial-gradient(circle at 40% 32%, rgba(255,175,110,.5), rgba(60,30,10,.8));
+    box-shadow:0 0 18px rgba(255,138,61,.45)}
+  #mFire{right:24px;bottom:120px;width:96px;height:96px;
+    background:radial-gradient(circle at 40% 32%, rgba(255,140,90,.45), rgba(120,26,16,.72));
+    border-color:rgba(255,120,90,.55)}
+  #mFire b{font-size:30px;line-height:1}
+  #mAds{right:132px;bottom:120px;width:66px;height:66px}
+  #mAds.on{border-color:rgba(110,242,176,.9);background:radial-gradient(circle at 40% 32%, rgba(110,242,176,.35), rgba(10,40,26,.8))}
+  #mJump{right:132px;bottom:196px;width:58px;height:58px;font-size:18px}
+  #mReload{right:24px;bottom:226px;width:64px;height:64px}
+  #mReload.empty{border-color:rgba(255,77,94,.9);animation:pulseRed 1s infinite}
+  #mSwitch{right:100px;bottom:24px;width:64px;height:64px}
+  #mSwitch b{font-size:10.5px;max-width:56px;text-align:center;line-height:1.1}
+  #mShop{right:176px;bottom:36px;width:54px;height:54px}
+  #mPause{right:16px;top:14px;width:46px;height:46px;font-size:15px}
+  @keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 rgba(255,77,94,.55)}50%{box-shadow:0 0 0 12px rgba(255,77,94,0)}}
+  #rotateHint{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:rgba(10,12,16,.93);color:#eef3f8;text-align:center;font-size:15px;letter-spacing:1px;padding:28px;
+    pointer-events:none;transition:opacity .35s}
+  #rotateHint div{max-width:320px;line-height:1.7}
+  #rotateHint b{color:var(--accent);letter-spacing:3px;display:block;margin-bottom:10px;font-size:13px}
+  body.touch #rotateHint.force{display:flex}
+  @media (orientation:portrait){
+    body.touch #rotateHint{display:flex}
+  }
+  @media (max-height:460px){
+    #stick{width:110px;height:110px;left:16px;bottom:16px}
+    #stickKnob{width:48px;height:48px}
+    #mFire{width:82px;height:82px;right:18px;bottom:104px}
+    #mAds{width:56px;height:56px;right:112px;bottom:104px}
+    #mJump{width:50px;height:50px;right:112px;bottom:170px}
+    #mReload{width:56px;height:56px;right:18px;bottom:198px}
+    #mSwitch{width:56px;height:56px;right:88px;bottom:18px}
+    #mShop{width:46px;height:46px;right:154px;bottom:26px}
+    #radarBox{width:104px;height:104px;left:12px;top:10px}
+    #hpWrap{width:132px;left:16px;bottom:138px}
+    #hpWrap .lbl{font-size:9px;letter-spacing:1.6px}
+    #hpWrap .bar{height:11px}
+    #weaponBox{right:240px;bottom:12px;min-width:120px}
+    #ammo{font-size:26px}
+    #moneyWrap{right:12px;top:64px}
+    #money{font-size:16px}
+    #waveBox{top:8px}
+    #waveInfo{font-size:15px}
+  }
+  @media (max-width:900px){
+    #mobile{display:block}
+  }
+  @media (orientation:portrait){
+    body.touch #radarBox{width:112px;height:112px;left:12px;top:12px}
+    body.touch #waveBox{top:14px}
+    body.touch #waveInfo{font-size:14px}
+    body.touch #moneyWrap{position:absolute;right:14px;top:12px}
+    body.touch #money{font-size:17px;text-align:right}
+    body.touch #hpWrap{bottom:210px}
+    body.touch #weaponBox{bottom:auto;top:64px;right:14px}
+    body.touch #ammo{font-size:26px}
+    body.touch #crosshair{width:54px;height:54px}
+    body.touch #stick{width:118px;height:118px;left:16px;bottom:20px}
+    body.touch #mFire{right:20px;bottom:150px}
+    body.touch #mAds{right:120px;bottom:150px}
+    body.touch #mJump{right:120px;bottom:222px}
+    body.touch #mReload{right:20px;bottom:254px}
+    body.touch #mSwitch{right:96px;bottom:20px}
+    body.touch #mShop{right:168px;bottom:30px}
+  }
+
   @media (max-width:640px){
     #radarBox{width:120px;height:120px}
     #hpWrap{width:180px;left:14px;bottom:14px}
     #weaponBox{right:14px;bottom:14px;min-width:140px}
     #ammo{font-size:30px}
-    #money{right:14px;top:14px;font-size:18px}
-    #crosshair{display:none}
+    #moneyWrap{right:14px;top:14px}
+    #money{font-size:18px}
+    #crosshair{opacity:.9}
   }
 </style>
 </head>
 <body>
 <div id="app">
   <canvas id="game"></canvas>
+
+
+  <!-- ===== MOBİL DOKUNMATİK KONTROLLER ===== -->
+  <div id="mobile" class="hidden">
+    <div id="stick" aria-label="Hareket joysticki"><div id="stickKnob"></div></div>
+    <div class="mbtn" id="mFire"><b>⊕</b><span>ATEŞ</span></div>
+    <div class="mbtn" id="mAds"><b>◉</b><span>NİŞAN</span></div>
+    <div class="mbtn" id="mJump"><b>↑</b><span>ZIPLA</span></div>
+    <div class="mbtn" id="mReload"><b id="mReloadLabel">12</b><span>ŞARJÖR</span></div>
+    <div class="mbtn" id="mSwitch"><b id="mSwitchLabel">TABANCA</b><span>SİLAH</span></div>
+    <div class="mbtn" id="mShop"><b>₺</b><span>MAĞAZA</span></div>
+    <div class="mbtn" id="mPause"><b>II</b></div>
+  </div>
 
   <!-- ===== HUD ===== -->
   <div id="hud">
@@ -248,7 +376,7 @@
       <div id="waveInfo">Kalan düşman: <b>0</b></div>
     </div>
 
-    <div id="money">0<span class="gain">+0</span></div>
+    <div id="moneyWrap"><div id="money">0<span class="gain">+0</span></div></div>
     <div id="killfeed"></div>
 
     <div id="hpWrap">
@@ -280,9 +408,10 @@
       <div class="btnrow">
         <button class="btn" id="playBtn">OYUNA GİR</button>
         <button class="btn ghost" id="howBtn">NASIL OYNANIR</button>
+        <button class="btn ghost hidden" id="mFullscreen">⛶ TAM EKRAN + YATAY</button>
       </div>
       <div class="cols">
-        <div id="ctrlBox">
+        <div id="ctrlBox" class="deskOnly">
           <div class="ctrl">
             <kbd>W A S D</kbd><span>Hareket</span>
             <kbd>FARE</kbd><span>Nişan al</span>
@@ -296,6 +425,18 @@
             <kbd>B</kbd><span>Mağaza (dalga arası)</span>
             <kbd>ESC</kbd><span>Duraklat</span>
             <kbd>M</kbd><span>Sesi kapat / aç</span>
+          </div>
+        </div>
+        <div id="ctrlTouch" class="touchOnly">
+          <div class="ctrl">
+            <kbd>JOYSTICK</kbd><span>Hareket (sol alt)</span>
+            <kbd>SÜRÜKLE</kbd><span>Bakış / nişan (sağ taraf)</span>
+            <kbd>⊕</kbd><span>Ateş</span>
+            <kbd>◉</kbd><span>Nişan modu aç/kapa</span>
+            <kbd>↑</kbd><span>Zıpla</span>
+            <kbd>ŞARJÖR</kbd><span>Şarjör değiştir</span>
+            <kbd>SİLAH</kbd><span>Silah değiştir</span>
+            <kbd>₺</kbd><span>Mağaza</span>
           </div>
         </div>
         <div class="side">
@@ -361,6 +502,8 @@
       </div>
     </div>
   </div>
+
+  <div id="rotateHint"><div><b>TELEFONU YATIR</b>Oyun yatay (landscape) modda tasarlandı.<br>Cihazı yan çevir ve ekrana dokun.</div></div>
 
   <div id="loading"><div class="l"><div class="spin"></div><div class="t">MAHALLE YÜKLENİYOR</div></div></div>
 </div>
@@ -2514,6 +2657,211 @@
   }
 
   /* ==================================================================
+     MOBİL / DOKUNMATİK KONTROLLER
+     - sol altta sanal joystick (hareket)
+     - sağ yarıda parmakla bakış
+     - ATEŞ / NİŞAN / ZIPLA / ŞARJÖR / SİLAH / MAĞAZA butonları
+     - dokunmatikte hafif nişan yardımı + daha geniş isabet alanı
+  ================================================================== */
+  var IS_TOUCH = (function () {
+    var mtp = navigator.maxTouchPoints || 0;
+    var coarse = false;
+    try { coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (e) {}
+    var hasTouchEvents = ('ontouchstart' in window) || (navigator.msMaxTouchPoints || 0) > 0;
+    // gerçek dokunmatik donanım şart (küçük masaüstü penceresi mobil sayılmasın)
+    return mtp > 0 || (hasTouchEvents && coarse);
+  })();
+  G.touch = IS_TOUCH;
+
+  var MOBILE = {
+    enabled: IS_TOUCH,
+    move: { x: 0, y: 0 },     // x: sağ, y: ileri
+    mag: 0,
+    ads: false,
+    firing: false,
+    lookId: null,
+    lookX: 0, lookY: 0,
+    joyId: null,
+    root: $('mobile')
+  };
+
+  function initMobileUI() {
+    if (!IS_TOUCH) return;
+    document.body.classList.add('touch');
+
+    // döndürme önerisi: ilk dokunuşta gizle, dikey moda dönünce yeniden göster
+    var rh = $('rotateHint');
+    if (rh) {
+      window.addEventListener('touchstart', function hideHint() {
+        rh.style.display = 'none';
+      }, { once: true, passive: true });
+      window.addEventListener('orientationchange', function () {
+        rh.style.display = '';
+      });
+    }
+    var root = MOBILE.root;
+    if (!root) return;
+    root.classList.remove('hidden');
+
+    /* ---------- sanal joystick ---------- */
+    var stick = $('stick'), knob = $('stickKnob');
+    var R = 46;
+    function joyStart(e) {
+      MOBILE.joyId = e.pointerId;
+      stick.classList.add('active');
+      try { stick.setPointerCapture(e.pointerId); } catch (err) {}
+      joyMove(e);
+      e.preventDefault();
+    }
+    function joyMove(e) {
+      if (MOBILE.joyId !== e.pointerId) return;
+      var r = stick.getBoundingClientRect();
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      var dx = e.clientX - cx, dy = e.clientY - cy;
+      var len = Math.hypot(dx, dy) || 1;
+      var cl = Math.min(len, R);
+      var nx = (dx / len) * (cl / R), ny = (dy / len) * (cl / R);
+      MOBILE.move.x = nx;
+      MOBILE.move.y = -ny;              // yukarı = ileri
+      MOBILE.mag = cl / R;
+      if (knob) knob.style.transform = 'translate(' + (nx * R) + 'px,' + (ny * R) + 'px)';
+      e.preventDefault();
+    }
+    function joyEnd(e) {
+      if (MOBILE.joyId !== e.pointerId) return;
+      MOBILE.joyId = null;
+      MOBILE.move.x = MOBILE.move.y = 0;
+      MOBILE.mag = 0;
+      if (knob) knob.style.transform = 'translate(0,0)';
+      stick.classList.remove('active');
+    }
+    if (stick) {
+      stick.addEventListener('pointerdown', joyStart);
+      stick.addEventListener('pointermove', joyMove);
+      stick.addEventListener('pointerup', joyEnd);
+      stick.addEventListener('pointercancel', joyEnd);
+      stick.addEventListener('lostpointercapture', joyEnd);
+    }
+
+    /* ---------- bakış (sağ yarı / boş ekran) ---------- */
+    function lookStart(e) {
+      if (G.state !== 'playing') return;
+      if (MOBILE.lookId !== null) return;
+      MOBILE.lookId = e.pointerId;
+      MOBILE.lookX = e.clientX;
+      MOBILE.lookY = e.clientY;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+    function lookMove(e) {
+      if (MOBILE.lookId !== e.pointerId) return;
+      var dx = e.clientX - MOBILE.lookX, dy = e.clientY - MOBILE.lookY;
+      MOBILE.lookX = e.clientX; MOBILE.lookY = e.clientY;
+      var k = 0.0042 * G.sens;
+      player.yaw -= dx * k;
+      player.pitch = clamp(player.pitch - dy * k, -1.45, 1.42);
+      e.preventDefault();
+    }
+    function lookEnd(e) {
+      if (MOBILE.lookId !== e.pointerId) return;
+      MOBILE.lookId = null;
+    }
+    canvas.addEventListener('pointerdown', lookStart);
+    canvas.addEventListener('pointermove', lookMove);
+    canvas.addEventListener('pointerup', lookEnd);
+    canvas.addEventListener('pointercancel', lookEnd);
+
+    /* ---------- butonlar ---------- */
+    function holdBtn(id, onDown, onUp) {
+      var el = $(id);
+      if (!el) return;
+      el.addEventListener('pointerdown', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        el.classList.add('down');
+        try { el.setPointerCapture(e.pointerId); } catch (err) {}
+        onDown && onDown();
+      });
+      var up = function (e) {
+        el.classList.remove('down');
+        onUp && onUp();
+      };
+      el.addEventListener('pointerup', up);
+      el.addEventListener('pointercancel', up);
+      el.addEventListener('lostpointercapture', up);
+    }
+    holdBtn('mFire', function () {
+      if (G.state !== 'playing') return;
+      Audio2.init(); Audio2.resume();
+      MOBILE.firing = true; mouse.down = true; player.wantFire = true;
+      if (MOBILE.enabled && MOBILE.buzz) MOBILE.buzz(22);
+    }, function () { MOBILE.firing = false; mouse.down = false; });
+
+    holdBtn('mAds', function () {
+      MOBILE.ads = !MOBILE.ads;
+      mouse.rdown = MOBILE.ads;
+      var el = $('mAds');
+      if (el) el.classList.toggle('on', MOBILE.ads);
+    });
+    holdBtn('mJump', function () { player.wantJump = true; });
+    holdBtn('mReload', function () { tryReload(); });
+    holdBtn('mSwitch', function () { switchWeapon(null, 1); });
+    holdBtn('mShop', function () { toggleShop(); });
+    holdBtn('mPause', function () {
+      if (G.state === 'playing') pauseGame();
+      else if (G.state === 'paused') resumeGame();
+    });
+
+    // tam ekran (başlangıç ekranı)
+    var fs = $('mFullscreen');
+    if (fs) {
+      fs.classList.remove('hidden');
+      fs.addEventListener('click', function (e) {
+        e.preventDefault();
+        var el = document.documentElement;
+        var req = el.requestFullscreen || el.webkitRequestFullscreen;
+        if (req) req.call(el).catch(function () {});
+        if (screen.orientation && screen.orientation.lock) {
+          try { screen.orientation.lock('landscape').catch(function () {}); } catch (err) {}
+        }
+        Audio2.init(); Audio2.resume();
+      });
+    }
+  }
+
+  // dokunmatik geri bildirim (destekleyen cihazlarda)
+  function buzz(ms) {
+    if (!IS_TOUCH || !navigator.vibrate) return;
+    try { navigator.vibrate(ms); } catch (e) {}
+  }
+  MOBILE.buzz = buzz;
+
+  // mobil HUD'u oyun durumuna göre göster/gizle
+  var mobileSyncT = 0;
+  function mobileSync() {
+    if (!IS_TOUCH) return;
+    var root = MOBILE.root;
+    if (!root) return;
+    var playing = (G.state === 'playing');
+    root.classList.toggle('playing', playing);
+    // nışan butonu durumu
+    var ad = $('mAds');
+    if (ad) ad.classList.toggle('on', MOBILE.ads && playing);
+    if (!playing) { MOBILE.move.x = MOBILE.move.y = 0; MOBILE.firing = false; mouse.down = false; }
+    // şarjördeki mermiyi butonda göster
+    mobileSyncT -= 1;
+    if (mobileSyncT <= 0) {
+      mobileSyncT = 10;
+      var sw = $('mSwitchLabel');
+      if (sw) sw.textContent = wdef().name.split(' ')[0];
+      var rl = $('mReloadLabel');
+      if (rl) {
+        var w = wdef();
+        rl.textContent = w.melee ? '∞' : String(player.mags[player.cur] || 0);
+        rl.parentNode.classList.toggle('empty', !w.melee && (player.mags[player.cur] || 0) === 0);
+      }
+    }
+  }
+
+  /* ==================================================================
      HUD YARDIMCILARI
   ================================================================== */
   var HUD = {
@@ -2579,6 +2927,7 @@
   }
   var hitTimer = 0;
   function showHitmarker(kill, head) {
+    if (MOBILE.enabled && MOBILE.buzz) MOBILE.buzz(kill ? 45 : 18);
     HUD.hit.classList.add('on');
     HUD.hit.classList.toggle('kill', !!kill);
     hitTimer = kill ? 0.22 : 0.1;
@@ -2625,6 +2974,29 @@
     return t > 0.05 ? t : -1;
   }
 
+  // Dokunmatikte hafif nişan yardımı: görüş konisi içindeki en yakın düşmana yön çekme
+  function aimAssist(dir, org) {
+    if (!MOBILE.enabled) return false;
+    var best = null, bestDot = 0.90;   // ~25 derecelik koni
+    for (var i = 0; i < bots.length; i++) {
+      var b = bots[i];
+      if (b.dead || b.spawnT < 0.5) continue;
+      var d = Math.hypot(b.pos.x - org.x, b.pos.z - org.z);
+      if (d > 45) continue;
+      if (losBlocked(org.x, org.z, b.pos.x, b.pos.z)) continue;
+      var tgt = V3(b.pos.x, 1.15 * b.app.scale, b.pos.z).sub(org);
+      var l = tgt.length();
+      if (l < 0.5) continue;
+      tgt.divideScalar(l);
+      var dot = tgt.dot(dir);
+      if (dot > bestDot) { bestDot = dot; best = tgt; }
+    }
+    if (!best) return false;
+    var strength = 0.55 + clamp((bestDot - 0.90) / 0.10, 0, 1) * 0.4;
+    dir.lerp(best, strength).normalize();
+    return true;
+  }
+
   function shootHitscan(spread, dmg, headMul) {
     var dir = V3(0, 0, -1).applyQuaternion(camera.quaternion);
     dir.x += rand(spread, -spread);
@@ -2632,6 +3004,7 @@
     dir.z += rand(spread, -spread) * 0.3;
     dir.normalize();
     var org = camera.position.clone();
+    aimAssist(dir, org);
     var best = null, bestT = 999, bestHead = false;
 
     for (var i = 0; i < bots.length; i++) {
@@ -2640,9 +3013,10 @@
       // duvar arkasında mı
       if (losBlocked(org.x, org.z, b.pos.x, b.pos.z)) continue;
       var s = b.app.scale;
-      var th = raySphere(org, dir, V3(b.pos.x, 1.62 * s, b.pos.z), 0.27 * s);
-      var tc = raySphere(org, dir, V3(b.pos.x, 1.12 * s, b.pos.z), 0.4 * s);
-      var tl = raySphere(org, dir, V3(b.pos.x, 0.6 * s, b.pos.z), 0.37 * s);
+      var hb = MOBILE.enabled ? 1.35 : 1;   // dokunmatikte daha cömert isabet alanı
+      var th = raySphere(org, dir, V3(b.pos.x, 1.62 * s, b.pos.z), 0.27 * s * hb);
+      var tc = raySphere(org, dir, V3(b.pos.x, 1.12 * s, b.pos.z), 0.4 * s * hb);
+      var tl = raySphere(org, dir, V3(b.pos.x, 0.6 * s, b.pos.z), 0.37 * s * hb);
       var bt = 999, head = false;
       if (th > 0 && th < bt) { bt = th; head = true; }
       if (tc > 0 && tc < bt) { bt = tc; head = false; }
@@ -2733,7 +3107,10 @@
     G.shotT = 0.12;
   }
 
-  function ADS() { return mouse.rdown && !wdef().melee && G.state === 'playing'; }
+  function ADS() {
+    var on = mouse.rdown || (MOBILE.enabled && MOBILE.ads);
+    return on && !wdef().melee && G.state === 'playing';
+  }
 
   /* ==================================================================
      OYUNCU GÜNCELLEME
@@ -2745,10 +3122,19 @@
     // ---- hareket girdisi
     var f = (keys['w'] ? 1 : 0) - (keys['s'] ? 1 : 0);
     var s = (keys['d'] ? 1 : 0) - (keys['a'] ? 1 : 0);
+    // mobil joystick
+    var joyMag = 0;
+    if (MOBILE.enabled) {
+      var mx = MOBILE.move.x, my = MOBILE.move.y;
+      if (Math.abs(mx) > 0.08 || Math.abs(my) > 0.08) {
+        f = clamp(my, -1, 1); s = clamp(mx, -1, 1);
+        joyMag = Math.min(1, Math.hypot(mx, my));
+      }
+    }
     var len = Math.hypot(f, s);
     if (len > 1) { f /= len; s /= len; }
     p.crouch = !!keys['control'] && p.onGround;
-    var wantSprint = !!keys['shift'] && f > 0 && !ADS() && !p.crouch && p.fireCd <= 0;
+    var wantSprint = !!(keys['shift'] || joyMag > 0.93) && f > 0.35 && !ADS() && !p.crouch && p.fireCd <= 0;
     if (wantSprint) p.sprintT = Math.min(1, p.sprintT + dt * 4); else p.sprintT = Math.max(0, p.sprintT - dt * 6);
     p.sprint = p.sprintT > 0.4;
 
@@ -2807,7 +3193,7 @@
     p.fireCd = Math.max(0, p.fireCd - dt);
     p.switchT = Math.max(0, p.switchT - dt);
     p.bloom = Math.max(0, p.bloom - dt * 2.6);
-    if (mouse.down && (w.auto || p.wantFire)) {
+    if ((mouse.down || (MOBILE.enabled && MOBILE.firing)) && (w.auto || p.wantFire || (MOBILE.enabled && MOBILE.firing))) {
       if (p.fireCd <= 0) fireWeapon();
     }
     p.wantFire = false;
@@ -2848,6 +3234,8 @@
       var by = vm.userData.by !== undefined ? vm.userData.by : (vm.userData.by = vm.position.y);
       var bz = vm.userData.bz !== undefined ? vm.userData.bz : (vm.userData.bz = vm.position.z);
       var adsK = p.adsAmt;
+      // mobilde geniş görüş açısı nedeniyle silahı biraz büyüt
+      vHold.scale.setScalar(MOBILE.enabled ? 1.18 : 1);
       var aimX = lerp(bx, 0.0, adsK), aimY = lerp(by, -0.10, adsK), aimZ = lerp(bz, bz + 0.06, adsK);
       // sallanma
       aimX += Math.sin(p.bob * 2.6) * 0.014 * bobAmp * (1 - adsK * 0.6);
@@ -2880,6 +3268,7 @@
 
     // ---- hızlanınca crosshair aç
     var spreadPx = 7 + (1 - (p.adsAmt || 0)) * 6 + Math.hypot(p.vel.x, p.vel.z) * 1.4 + p.bloom * 9;
+    if (MOBILE.enabled) spreadPx *= 0.75;
     HUD.cross.style.setProperty('--sp', spreadPx.toFixed(1) + 'px');
   }
   function adsAmtOr(p) { return p.adsAmt === undefined ? 0 : p.adsAmt; }
@@ -2895,6 +3284,7 @@
     player.hp -= d;
     player.lastHitT = G.t;
     G.hitFlash = 0.5;
+    if (MOBILE.enabled && MOBILE.buzz) MOBILE.buzz(70);
     G.shake = Math.min(0.5, G.shake + 0.18);
     Audio2.hurt();
     if (fromPos) showHitDir(fromPos);
@@ -3192,7 +3582,7 @@
      OYUN AKIŞI
   ================================================================== */
   function requestLock() {
-    if (G.state !== 'playing') return;
+    if (G.state !== 'playing' || IS_TOUCH) return;
     try {
       var pr = canvas.requestPointerLock && canvas.requestPointerLock();
       if (pr && pr.catch) pr.catch(function () {});
@@ -3340,6 +3730,7 @@
     G.t += dt;
     if (G.state !== 'menu') simulate(dt);
     else Effects.update(dt);
+    mobileSync();
     drawRadar();
     renderAll();
   }
@@ -3559,6 +3950,7 @@
   }
   resizeView();
   bindUI();
+  initMobileUI();
   updateBest();
   updateAmmoHud();
   updateHealthHud();
@@ -3582,6 +3974,8 @@
     G: G, player: player, bots: bots, camera: camera, scene: scene, T: T,
     fire: fireWeapon, melee: meleeAttack, startWave: startWave, buy: buyItem,
     viewCam: viewCam, viewScene: viewScene, vmList: vmList, vmHold: vHold,
+    mobile: MOBILE, isTouch: IS_TOUCH, ads: ADS, reload: tryReload, switchW: switchWeapon,
+    toggleShop: toggleShop, pause: pauseGame, resume: resumeGame,
     items: SHOP_ITEMS, weapons: WEAPONS, hurt: hurtPlayer, spawn: spawnBot,
     openShop: openShop, los: losBlocked, findPath: findPath, grid: grid, GN: GN, CELL: CELL,
     HALF: HALF, COL: COL, pickups: pickups, syncCam: function () {
@@ -3592,6 +3986,7 @@
     tick: function (dt, render) {
       G.t += dt;
       simulate(dt);
+      mobileSync();
       drawRadar();
       if (render) renderAll();
     },
