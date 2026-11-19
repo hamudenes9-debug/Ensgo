@@ -8,17 +8,18 @@
   var ALLY_DEFS = {
     guard: { name: 'MAHALLE BEKÇİSİ', hp: 165, speed: 4.8, weapon: 'm4a4', dmg: 12, rate: 0.28, color: 0x2f4a7a },
     shooter: { name: 'KESKİN NİŞANCI', hp: 145, speed: 4.6, weapon: 'ak47', dmg: 16, rate: 0.4, color: 0x2f6b4a },
-    devriye: { name: 'DEVRİYE', hp: 190, speed: 4.3, weapon: 'm4a4', dmg: 11, rate: 0.3, color: 0x4a5a3a, soldier: true }
+    devriye: { name: 'DEVRİYE', hp: 190, speed: 4.3, weapon: 'm4a4', dmg: 11, rate: 0.3, color: 0x4a5a3a, soldier: true },
+    tower: { name: 'KULE NÖBETÇİSİ', hp: 400, speed: 0, weapon: 'ak47', dmg: 14, rate: 0.34, color: 0x46523a, soldier: true, fixed: true }
   };
 
-  function Ally(kind, idx, sx, sz, forceName) {
+  function Ally(kind, idx, sx, sz, forceName, fixedY) {
     this.kind = kind;
     var def = ALLY_DEFS[kind];
     this.def = def;
     this.maxHp = def.hp; this.hp = def.hp;
     this.speed = def.speed;
     this.radius = 0.42;
-    this.pos = V3(sx !== undefined ? sx : player.pos.x + (idx === 0 ? -2.2 : 2.2), 0,
+    this.pos = V3(sx !== undefined ? sx : player.pos.x + (idx === 0 ? -2.2 : 2.2), fixedY || 0,
       sz !== undefined ? sz : player.pos.z + 2.5);
     this.vel = V3(0, 0, 0);
     this.yaw = player.yaw;
@@ -34,6 +35,8 @@
     this.slot = idx;
     this.formT = 0.4;
     this.spawnProt = 1.2;   // doğduktan sonra kısa dokunulmazlık
+    this.fixed = !!def.fixed;            // kule nöbetçisi: yerinden ayrılmaz
+    this.fixedY = fixedY || 0;
 
     // görünüm: takım rengi yelek + şapka, rastgele yüz
     var app = {
@@ -88,10 +91,19 @@
       if (b.dead || b.spawnT < 0.5) continue;
       var dSelf = Math.hypot(b.pos.x - this.pos.x, b.pos.z - this.pos.z);
       var dPlayer = Math.hypot(b.pos.x - player.pos.x, b.pos.z - player.pos.z);
-      if (dSelf > 44 && dPlayer > 30) continue;
+      // kule nöbetçisi haritanın büyük kısmını görür (yüksekten geniş görüş)
+      var reach = this.fixed ? 95 : 44;
+      if (dSelf > reach && (this.fixed || dPlayer > 30)) continue;
       var sees = !losBlocked(this.pos.x, this.pos.z, b.pos.x, b.pos.z);
+      // kule yüksekte: kule gövdesini engel saymasın diye hedefe doğru 3 m kaydırılmış bakış da dene
+      if (!sees && this.fixed) {
+        var dxk = b.pos.x - this.pos.x, dzk = b.pos.z - this.pos.z;
+        var dk = Math.hypot(dxk, dzk) || 1;
+        sees = !losBlocked(this.pos.x + (dxk / dk) * 3, this.pos.z + (dzk / dk) * 3, b.pos.x, b.pos.z);
+      }
       // oyuncuya yaklaşan zombiler öncelikli (koruma), görüş hattı olanlar tercih edilir
-      var score = dSelf * 1.0 + dPlayer * 0.65 + (sees ? 0 : 14);
+      var score = dSelf * (this.fixed ? 0.55 : 1.0) + dPlayer * (this.fixed ? 0.3 : 0.65) + (sees ? 0 : 14);
+      // kule nöbetçisi görüş hattı olmayanı da seçer (yüksekten genel bakış), ceza daha küçük
       if (score < bestScore) { bestScore = score; best = b; }
     }
     return best;
@@ -136,6 +148,50 @@
           if (o.isMesh && o.material && o.material.emissive) { o.material.emissive.setHex(0x000000); o.material.emissiveIntensity = 0; }
         });
       }
+    }
+
+    // ---- KULE NÖBETÇİSİ: yerinden ayrılmaz, sadece döner ve ateş eder
+    if (this.fixed) {
+      if (this.think <= 0 || (!this.target && bots.length)) {
+        this.think = rand(0.3, 0.14);
+        var tf = this.findTarget();
+        this.target = tf || null;
+      }
+      if (this.target && (this.target.dead || this.target.spawnT < 0.5)) this.target = null;
+      if (this.target) {
+        var tdx = this.target.pos.x - this.pos.x, tdz = this.target.pos.z - this.pos.z;
+        var fYaw = Math.atan2(tdx, tdz);
+        var fDiff = ((fYaw - this.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+        this.yaw += fDiff * Math.min(1, dt * 5);
+        var fTd = Math.hypot(tdx, tdz);
+        av.armR.rotation.x = -1.45 + Math.sin(G.t * 1.6) * 0.02;
+        av.armL.rotation.x = -1.26; av.armL.rotation.y = 0.52;
+        this.mode = 'fight';
+        this.fireCd -= dt;
+        // görüş hattını kulenin kendi gövdesinden ölçmemek için hedefe doğru 2.4 m ileriden bak
+        var lox = this.pos.x + (tdx / (fTd || 1)) * 2.4;
+        var loz = this.pos.z + (tdz / (fTd || 1)) * 2.4;
+        if (this.fireCd <= 0 && fTd < 85 &&
+            !losBlocked(lox, loz, this.target.pos.x, this.target.pos.z)) {
+          this.fireCd = this.def.rate * rand(1.1, 0.85);
+          this.shoot(this.target, -this.fixedY + fTd);
+        }
+      } else {
+        av.armR.rotation.x = -0.55; av.armL.rotation.x = -0.45; av.armL.rotation.y = 0.1;
+        // etrafı kolaçan et
+        this.yaw += Math.sin(G.t * 0.45 + this.slot) * dt * 0.35;
+        this.fireCd = Math.max(0, this.fireCd - dt);
+        this.mode = 'guard';
+      }
+      this.root.position.set(this.pos.x, this.fixedY, this.pos.z);
+      this.root.rotation.y = this.yaw;
+      if (this.marker) {
+        this.marker.rotation.y += dt * 2.2;
+        this.marker.position.y = 2.24 + Math.sin(G.t * 2.6) * 0.06;
+        this.marker.visible = true;
+      }
+      if (this.ring) this.ring.visible = false;
+      return;
     }
 
     // ---- hedef seçimi (yakın tehdit önceliği)
@@ -372,8 +428,12 @@
       }
     });
     if (this.marker) { this.marker.visible = true; this.marker.material.opacity = 0.95; }
-    this.pos.set(player.pos.x + rand(3, -3), 0, player.pos.z + rand(3.5, 2));
-    collideCircle(this.pos, this.radius);
+    if (this.fixed && this.home) {
+      this.pos.set(this.home.x, this.home.y, this.home.z);
+    } else {
+      this.pos.set(player.pos.x + rand(3, -3), 0, player.pos.z + rand(3.5, 2));
+      collideCircle(this.pos, this.radius);
+    }
     this.root.position.copy(this.pos);
     hint(this.name + ' geri döndü!', 1.6);
     Audio2.buy();

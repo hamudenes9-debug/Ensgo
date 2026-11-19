@@ -17,8 +17,8 @@
   /* ------------------------------------------------------------------
      SABİTLER
   ------------------------------------------------------------------ */
-  var HALF = 55;              // oyun alanı yarı genişliği (büyük map)
-  var FENCE = 54;             // tel örgü çizgisi
+  var HALF = 62;              // oyun alanı yarı genişliği (büyük map)
+  var FENCE = 58;             // tel örgü çizgisi
   var EYE = 1.72;             // göz yüksekliği (geniş haritada daha ferah görüş)
   var GRAV = 22;
   var STEP = 0.1;
@@ -636,6 +636,76 @@
     });
   }
 
+  // --- Tel örgü köşe gözetleme kulesi (4 adet, her köşede 1) ---
+  var TOWERS = [];
+  function buildTower(x, z) {
+    var g = new T.Group();
+    var H = 6.2;                      // platform yüksekliği
+    var legMat = new T.MeshStandardMaterial({ color: 0x55606a, roughness: 0.5, metalness: 0.6 });
+    // 4 ayak (hafif içe eğik)
+    var legs = [[-1.5, -1.5], [1.5, -1.5], [-1.5, 1.5], [1.5, 1.5]];
+    legs.forEach(function (L) {
+      var leg = new T.Mesh(new T.CylinderGeometry(0.13, 0.19, H, 7), legMat);
+      leg.position.set(L[0] * 0.92, H / 2, L[1] * 0.92);
+      leg.rotation.z = -L[0] * 0.022; leg.rotation.x = L[1] * 0.022;
+      leg.castShadow = true; g.add(leg);
+      // çapraz destek
+      var br = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, H * 0.72, 5), legMat);
+      br.position.set(L[0] * 1.42, H * 0.42, L[1] * 1.42);
+      br.rotation.z = L[0] > 0 ? 0.42 : -0.42;
+      br.rotation.x = L[1] > 0 ? -0.42 : 0.42;
+      g.add(br);
+    });
+    // yatay çaprazlar
+    for (var yy = 1.6; yy < H; yy += 1.7) {
+      [[-1, 0, 0.14], [1, 0, 0.14], [0, -1, 0.14], [0, 1, 0.14]].forEach(function (d) {
+        var b = boxMesh(d[0] ? 0.09 : 3.0, 0.09, d[1] ? 0.09 : 3.0, legMat);
+        b.position.set(d[0] * 1.42, yy, d[1] * 1.42); g.add(b);
+      });
+    }
+    // platform
+    var deck = boxMesh(3.7, 0.18, 3.7, new T.MeshStandardMaterial({ color: 0x6b6355, roughness: 0.9 }));
+    deck.position.y = H; deck.castShadow = true; deck.receiveShadow = true; g.add(deck);
+    // korkuluk
+    var railMat = new T.MeshStandardMaterial({ color: 0x3c434b, roughness: 0.5, metalness: 0.6 });
+    [[-1.7, 0, 0.05, 3.6], [1.7, 0, 0.05, 3.6], [0, -1.7, 3.6, 0.05], [0, 1.7, 3.6, 0.05]].forEach(function (r) {
+      for (var h = 0.45; h <= 0.95; h += 0.5) {
+        var bar = boxMesh(r[2], 0.05, r[3], railMat);
+        bar.position.set(r[0], H + h, r[1]); g.add(bar);
+      }
+      var mid = boxMesh(r[2] === 3.6 ? 0.07 : 0.07, 1.0, r[3] === 3.6 ? 0.07 : 0.07, railMat);
+      mid.position.set(r[0], H + 0.5, r[1]); g.add(mid);
+    });
+    // çatı (yağmur siperi)
+    var roof = boxMesh(4.4, 0.14, 4.4, new T.MeshStandardMaterial({ color: 0x4a4238, roughness: 0.85 }));
+    roof.position.y = H + 2.5; roof.castShadow = true; g.add(roof);
+    [[-1.9, -1.9], [1.9, -1.9], [-1.9, 1.9], [1.9, 1.9]].forEach(function (p) {
+      var pl = boxMesh(0.1, 2.5, 0.1, railMat);
+      pl.position.set(p[0], H + 1.25, p[1]); g.add(pl);
+    });
+    // projektör + bayrak direği
+    var flood = boxMesh(0.55, 0.26, 0.32, new T.MeshBasicMaterial({ color: 0xfff0c0 }));
+    flood.position.set(0, H + 2.28, 0); g.add(flood);
+    var pole = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 2.2, 6), MAT.darkMetal);
+    pole.position.set(1.5, H + 3.6, 0); g.add(pole);
+    var flag = boxMesh(1.1, 0.62, 0.03, new T.MeshStandardMaterial({ color: 0xb3261e, roughness: 0.9, side: T.DoubleSide }));
+    flag.position.set(2.05, H + 4.1, 0); g.add(flag);
+    // kum torbası yığını platformda
+    for (var k = 0; k < 3; k++) {
+      var bag = new T.Mesh(new T.BoxGeometry(0.66, 0.3, 0.44),
+        new T.MeshStandardMaterial({ color: 0x7d7a5c, roughness: 1 }));
+      bag.position.set(-1.2 + k * 0.7, H + 0.24, -1.35); bag.castShadow = true; g.add(bag);
+    }
+    // askerlerin duracağı yer (dünya koordinatı)
+    g.position.set(x, 0, z);
+    g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; SOLIDS.push(o); } });
+    world.add(g);
+    addColOBB(x, z, 3.5, 3.5, 0);
+    // dış köşedeki kuleyi haritanın içine çek
+    TOWERS.push({ x: x, z: z, deckY: H, post: { x: x, z: z, y: H } });
+    return g;
+  }
+
   // --- Ağaç ---
   function buildTree(x, z, s) {
     s = s || 1;
@@ -959,8 +1029,8 @@
     buildBuilding(30, 2, 6, 7, 3, { style: 'plaster', color: '#cfc0a8' });
 
     // --- Güneybatı ---
-    buildBuilding(-24, 23, 13, 12, 4, { style: 'plaster', color: '#c2b49b', shop: true, sign: 'KIRAATHANE', signBg: '#7a4a22', signSub: 'ÇAY · OKEY' });
-    buildBuilding(-18.5, 31, 7, 7, 3, { style: 'brick', color: '#9a6b53' });
+    buildBuilding(-36, 21, 12, 11, 4, { style: 'plaster', color: '#c2b49b', shop: true, sign: 'KIRAATHANE', signBg: '#7a4a22', signSub: 'ÇAY · OKEY' });
+    buildBuilding(-12.5, 36, 7, 7, 3, { style: 'brick', color: '#9a6b53' });
     buildBuilding(-30, 22, 7, 9, 3, { style: 'plaster', color: '#b5bcc0' });
 
     // --- Güneydoğu ---
@@ -1036,7 +1106,7 @@
 
     // --- GÜNEY BÖLGESİ (pazar alanı + otopark) ---
     buildBuilding(-44, 44, 14, 12, 4, { style: 'brick', color: '#9f6c53' });
-    buildBuilding(-22, 46, 16, 10, 3, { style: 'plaster', color: '#c2c8ca', shop: true, sign: 'HALI', signBg: '#5a2a6a', signSub: 'YIKAMA' });
+    buildBuilding(-9, 46, 10, 8, 3, { style: 'plaster', color: '#c2c8ca', shop: true, sign: 'HALI', signBg: '#5a2a6a', signSub: 'YIKAMA' });
     buildBuilding(4, 46, 12, 10, 4, { style: 'plaster', color: '#cbbfa8' });
     buildBuilding(26, 44, 14, 12, 3, { style: 'brick', color: '#a3745b' });
     buildBuilding(46, 42, 12, 12, 3, { style: 'plaster', color: '#b9bfc4', shop: true, sign: 'OTO', signBg: '#2a3a4a', signSub: 'YIKAMA · SERVİS' });
@@ -1114,3 +1184,112 @@
     addCol(3.6, 32.4, 0.6, 0.6);
   }
   buildWorld();
+
+  /* ------------------------------------------------------------------
+     TEL ÖRGÜ HATTI — 4 KÖŞEDE 1'ER GÖZETLEME KULESİ (her kulede 1 askerimiz)
+  ------------------------------------------------------------------ */
+  (function buildCornerTowers() {
+    var c = FENCE - 6.2;                 // köşeden içeri
+    buildTower(-c, -c); buildTower(c, -c);
+    buildTower(-c, c); buildTower(c, c);
+  })();
+
+  /* ------------------------------------------------------------------
+     4. EV — oyunun başladığı yer: yatak odası (üst kat) + merdiven + avlu
+     Başlangıç sinematiği burada geçer. Ev güney-güneybatıda, tel örgünün içinde.
+  ------------------------------------------------------------------ */
+  var HOME = { x: -24, z: 40, rot: 0, bed: { x: -24 - 2.6, z: 40 + 1.2 }, stair: { x: -24 + 6.4, z: 40 - 1.2 }, door: { x: -24, z: 40 + 4.5 } };
+  function buildHome() {
+    var g = new T.Group();
+    var wallMat = new T.MeshStandardMaterial({ map: TEX.concrete, color: 0xd9cfc0, roughness: 0.92 });
+    var floorMat = new T.MeshStandardMaterial({ color: 0x8a6a4a, roughness: 0.85 });
+    var W = 11, D = 9, H1 = 3.2, H2 = 3.0;
+    // zemin kat duvarları (kapı boşluğu ön yüzde)
+    function wall(w, h, d, x, y, z) {
+      var m = boxMesh(w, h, d, wallMat);
+      m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m;
+    }
+    wall(W, H1, 0.3, 0, H1 / 2, -D / 2);                 // arka
+    wall(0.3, H1, D, -W / 2, H1 / 2, 0);                 // sol
+    wall(0.3, H1, D, W / 2, H1 / 2, 0);                  // sağ
+    wall(3.6, H1, 0.3, -W / 2 + 1.8, H1 / 2, D / 2);     // ön sol
+    wall(3.6, H1, 0.3, W / 2 - 1.8, H1 / 2, D / 2);      // ön sağ
+    wall(W - 7.2, H1 - 2.3, 0.3, 0, H1 - 0.7, D / 2);    // kapı üstü
+    // ara kat döşemesi (boşluk merdiven için)
+    var fl = boxMesh(W - 0.6, 0.24, D - 0.6, floorMat);
+    fl.position.set(0, H1, 0); fl.receiveShadow = true; g.add(fl);
+    // üst kat duvarları
+    wall(W, H2, 0.3, 0, H1 + H2 / 2, -D / 2);
+    wall(0.3, H2, D, -W / 2, H1 + H2 / 2, 0);
+    wall(0.3, H2, D, W / 2, H1 + H2 / 2, 0);
+    wall(W, H2, 0.3, 0, H1 + H2 / 2, D / 2);
+    // çatı
+    var roof = boxMesh(W + 1.2, 0.3, D + 1.2, new T.MeshStandardMaterial({ color: 0x6b4a3a, roughness: 0.9 }));
+    roof.position.set(0, H1 + H2 + 0.15, 0); roof.castShadow = true; g.add(roof);
+    // pencereler (üst kat, ön)
+    for (var wi = -1; wi <= 1; wi++) {
+      var win = boxMesh(1.5, 1.2, 0.06, MAT.glass);
+      win.position.set(wi * 3.0, H1 + 1.7, D / 2 + 0.16); g.add(win);
+      var frame = boxMesh(1.7, 1.4, 0.04, new T.MeshStandardMaterial({ color: 0xe8e2d6, roughness: 0.8 }));
+      frame.position.set(wi * 3.0, H1 + 1.7, D / 2 + 0.13); g.add(frame);
+    }
+    // merdiven (dış cephe, sağ yanda): 2 kol
+    var stairMat = new T.MeshStandardMaterial({ color: 0xb0a89c, roughness: 0.92 });
+    for (var st = 0; st < 8; st++) {
+      var step = boxMesh(1.5, 0.2, 0.52, stairMat);
+      step.position.set(W / 2 + 0.85, 0.2 + st * 0.36, -2.4 + st * 0.5);
+      step.receiveShadow = true; g.add(step);
+    }
+    // merdiven korkuluğu
+    var hr = boxMesh(0.08, 0.9, 3.2, MAT.darkMetal);
+    hr.position.set(W / 2 + 1.55, 1.7, -0.6); g.add(hr);
+    // avlu: çit + çamaşır ipi + varil
+    var yardMat = new T.MeshStandardMaterial({ color: 0x8c8f88, roughness: 1 });
+    var yard = boxMesh(W + 1.0, 0.06, 4.2, yardMat);
+    yard.position.set(0, 0.03, D / 2 + 2.2); yard.receiveShadow = true; g.add(yard);
+    for (var f = 0; f < 5; f++) {
+      var post = boxMesh(0.12, 0.9, 0.12, MAT.woodDark);
+      post.position.set(-W / 2 + f * (W / 4), 0.45, D / 2 + 4.2); g.add(post);
+    }
+    for (var ln = 0; ln < 3; ln++) {
+      var line = boxMesh(W, 0.02, 0.02, new T.MeshStandardMaterial({ color: 0xd8d8d0 }));
+      line.position.set(0, 0.86, D / 2 + 4.2 - (ln % 2) * 0.5); g.add(line);
+    }
+    g.position.set(HOME.x, 0, HOME.z);
+    g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; SOLIDS.push(o); } });
+    world.add(g);
+    // çarpışma: dolu duvarlar (merdiven tarafı hariç değil — sadece zemin kat)
+    addCol(HOME.x, HOME.z - D / 2, W, 0.6);
+    addCol(HOME.x - W / 2, HOME.z, 0.6, D);
+    addCol(HOME.x + W / 2, HOME.z, 0.6, D);
+    addCol(HOME.x - W / 2 + 1.8, HOME.z + D / 2, 3.6, 0.6);
+    addCol(HOME.x + W / 2 - 1.8, HOME.z + D / 2, 3.6, 0.6);
+    HOME.deckY = H1; HOME.w = W; HOME.d = D;
+    // yatak (üst kat) — sinematik buradan başlar
+    var bedG = new T.Group();
+    var bedBase = boxMesh(2.1, 0.42, 1.45, new T.MeshStandardMaterial({ color: 0x5a3f2c, roughness: 0.9 }));
+    bedBase.position.y = 0.32; bedG.add(bedBase);
+    var mattress = boxMesh(2.0, 0.22, 1.35, new T.MeshStandardMaterial({ color: 0xe8e4d8, roughness: 0.95 }));
+    mattress.position.y = 0.6; bedG.add(mattress);
+    var quilt = boxMesh(1.35, 0.16, 1.3, new T.MeshStandardMaterial({ color: 0x3d5a7a, roughness: 0.95 }));
+    quilt.position.set(0.35, 0.73, 0); bedG.add(quilt);
+    var pillow = boxMesh(0.62, 0.16, 0.9, new T.MeshStandardMaterial({ color: 0xf2efe6, roughness: 0.95 }));
+    pillow.position.set(-0.72, 0.78, 0); bedG.add(pillow);
+    bedG.position.set(-2.6, H1, 1.2);
+    g.add(bedG);
+    HOME.bed = { x: HOME.x - 2.6, z: HOME.z + 1.2, y: H1 + 0.7 };
+    HOME.bedHead = { x: HOME.x - 3.3, z: HOME.z + 1.2, y: H1 + 1.05 };
+    // gece lambası (komodin)
+    var stand = boxMesh(0.7, 0.62, 0.7, new T.MeshStandardMaterial({ color: 0x4a3524, roughness: 0.9 }));
+    stand.position.set(-3.8, H1 + 0.31, 1.2); g.add(stand);
+    var lampShade = new T.Mesh(new T.ConeGeometry(0.22, 0.3, 10), new T.MeshBasicMaterial({ color: 0xffcf88 }));
+    lampShade.position.set(-3.8, H1 + 0.82, 1.2); g.add(lampShade);
+    var lampPole = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.22, 6), MAT.darkMetal);
+    lampPole.position.set(-3.8, H1 + 0.68, 1.2); g.add(lampPole);
+    HOME.lamp = { x: HOME.x - 3.8, z: HOME.z + 1.2, y: H1 + 0.9 };
+    // merdiven boşluğu işareti (dekor: tırabzan + kapı)
+    var rail = boxMesh(0.1, 1.0, 3.4, MAT.darkMetal);
+    rail.position.set(3.9, H1 + 0.5, -1.6); g.add(rail);
+    return g;
+  }
+  buildHome();

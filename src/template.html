@@ -87,6 +87,11 @@
   .ally.help{border-color:rgba(255,77,94,.6);background:rgba(30,8,10,.66)}
   .ally.help .st{background:rgba(255,77,94,.22);color:#ff9aa5}
   .ally.dead .st{background:rgba(0,0,0,.35);color:#9aa7b3}
+  #black{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:60;transition:opacity .28s linear}
+  #introSkip{position:fixed;right:18px;bottom:18px;z-index:61;font-size:11px;letter-spacing:1.6px;
+    color:#cfd8e0;background:rgba(8,14,18,.66);border:1px solid rgba(255,255,255,.16);
+    border-radius:4px;padding:7px 13px;cursor:pointer;font-weight:800}
+  #introSkip:hover{color:#fff;border-color:rgba(255,255,255,.4)}
   #allyHead{font-size:9px;letter-spacing:2px;color:#7f93a6;font-weight:800;margin-bottom:-1px;
     display:flex;justify-content:space-between}
   #allyHead b{color:var(--mint)}
@@ -376,6 +381,8 @@
 </style>
 </head>
 <body>
+<div id="black"></div>
+<button id="introSkip" class="hidden">SİNEMATİĞİ ATLA ▸</button>
 <div id="app">
   <canvas id="game"></canvas>
 

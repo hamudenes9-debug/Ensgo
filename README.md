@@ -9,8 +9,16 @@ Sadece `index.html` dosyasını Chrome / Edge / Firefox'ta aç. Kurulum gerekmez
 
 ## Özellikler
 
+**Açılış sinematiği — gece yatakta uyanış** (v1.4)
+1. Oyun **gece** başlar; ekran kararır, **alarm çalar**, kalp atışı duyulur
+2. Kamera yatakta yatan **kendi karakterinin** üzerinde: 3. şahıs, nefes alan göğüs, gözlerini açma anı
+3. Karakter yataktan doğrulur, **merdivenden aşağı koşar**, koridordan geçip kapıdan avluya çıkar
+4. Bitişte kamera omuza geçer (1. şahıs), elinde bıçak, tel örgü hattı ve **4 kule** karşında
+5. Sinematik herhangi bir tuşa/tıklamaya basınca atlanır; oyun durumu bozulmaz
+
+
 **Harita — tel örgüyle çevrili büyük mahalle (v1.3)**
-- **110 × 110 m** alan (eski 68 × 68 m'nin ~2,6 katı), dikenli telli tel örgü çit ve çelik direkler
+- **124 × 124 m** alan (tel örgü hattı 116 × 116 m), dikenli telli tel örgü çit ve çelik direkler
 - Yeni bölgeler: batıda **karakol** + iki **devlet kontrol noktası**, doğuda **okul** ve **depo**, kuzeyde **cami** ve meydan, güneyde büyük **pazar**
 - Artı şeklinde iki cadde, kaldırımlar, yaya geçidi, rögar, su birikintisi
 - 15+ bina: sıvalı/tuğla cephe, pencereler, balkonlar, çamaşır ipleri, klimalar, çatı su depoları
@@ -34,16 +42,14 @@ Kafadan vuruş 2.6× hasar. Mesafeyle hasar düşer. 1/2/3 tuşları veya fare t
 - Cephane paketleri (silah başına veya toplu)
 - Ekipman: çelik yelek, sağlık seti, hafif ayakkabı (+%12 hız), matkap namlu (+%14 hasar), zırhlı palto (+25 maks. can)
 
-**Dost botlar — yanında savaşan 2 mahalle koruyucusu (+ devriyeler)**
-- **Eskiden yanında geziniyorlardı; artık savaşıyorlar:** düşman yokken oyuncunun 2,5–4,5 m çevresinde **mevzi** alırlar, zombi belirdiği anda cepheye koşup ateş ederler (10,5 m çatışma mesafesi, 42 m'ye kadar atış)
-- Hedef seçimi: oyuncuya en çok yaklaşan zombi öncelikli (seni korurlar), duvar arkasındakini A* ile dolaşırlar
-- Oyuncudan 18 m'den fazla uzaklaşırlarsa koşarak geri dönerler (asla haritada başıboş kalmazlar)
-- HUD'da her dost için **MEVZİDE / VURUYOR / DÜŞTÜ** durumu ve üstte "2/4 VURUYOR" sayacı
-- **Mahalle Bekçisi** (165 HP, M4A4) ve **Keskin Nişancı** (145 HP, AK-47), her biri rastgele isim ve yüzle
-- Seni takip ederler, görüş hattı olan düşmanı seçip ateş ederler, seni siper alırlar, birbirlerinden ayrışırlar
-- Başlarında yeşil elmas işaret + radarda yeşil kare, HUD'da can çubukları
-- Düşerlerse 8 saniye sonra sağlıkla geri dönerler; vurdukları düşmanlar için ekstra para gelir
-- Panele "DOST BOT" bilgisi: isim, can, durum
+**Kule nöbetçileri — 4 köşede 4 asker** (v1.4)
+- Tel örgü hattının **dört köşesinde birer kule** (çelik direk, platform, tırabzan, projektör) yükselir
+- **Her kulede 1 devlet askeri** nöbet tutar: kamuflaj, miğfer, çelik yelek, M4A4 · 400 HP · 14 hasar · 0,34 sn atış aralığı
+- Kuleler yerden **6,4 m** yüksekte; nöbetçi yerinden ayrılmaz, ölürse 7 sn sonra kulesinde geri döner
+- Yüksekten geniş bakış: 95 m'ye kadar hedef arar, 85 m'ye kadar ateş eder; hedef seçiminde oyuncuya yaklaşan zombiler öncelikli
+- Kule gövdesi kendi görüş hattını kesmesin diye bakış hedefe doğru 3 m kaydırılarak sınanır
+- HUD'da **🪖 4/4 kule** sayacı; radarda mavi/beyaz kule işaretleri
+- **Yanında gezen dost bot yoktur** — destek yalnızca kulelerden gelir
 
 **Gün saati — her dalgada zaman değişir**
 Her dalgada atmosfer baştan kurulur (2,4 sn yumuşak geçiş):
@@ -67,14 +73,10 @@ Düşman olarak yalnızca zombiler gelir.
 | 3–5 | yürüyen / koşan / ilk dev zombiler | |
 | 5 · 10 · 15… | **🔥 BÜYÜK DALGA** | %45 daha kalabalık, siren + kırmızı banner, %60 fazla bonus |
 | 6+ | tam karışık sürü | dev zombi oranı artar |
+| sonsuz | dalga sayısı **sınırsız** | sayı `4 + round(dalga × 2,1)` (en az 6), canlı zombi limiti 9 → 20 |
 
 Zombi tipleri: **Zombi** (110 HP, 2,95 m/s), **Koşan Zombi** (80 HP, 5,1 m/s), **Dev Zombi** (480 HP, 26 hasar, 1,25× boy).
-Zombiler tüfek kullanmaz — kolları ileri uzanmış hâlde koşar, duvar arkasında bile kokudan takip eder, 2 m içinde tırmalar. **Dost botları da tırmalayıp düşürebilirler.**
-
-**Devlet devriyeleri (dost askerler)**
-- 1. dalgada 2 devriye kontrol noktalarından çıkıp yanına katılır; her 3. dalgada bir yenisi gelir (en fazla 5)
-- Kamuflaj, miğfer, çelik yelek; 190 HP, M4A4
-- Kontrol noktasından çıkar, sana yetişir, zombileri vurur; kendi can çubukları HUD'da görünür
+Zombiler tüfek kullanmaz — kolları ileri uzanmış hâlde koşar, duvar arkasında bile kokudan takip eder, 2 m içinde tırmalar. Kule nöbetçilerini de tırmalayıp düşürebilirler.
 
 **Kamera açısı (v1.3)**
 - Görüş açısı 74° → **80°** (dar ekran/portre 88°), nişanda 47°'ye daralır — büyük haritada çevre kontrolü kolay
@@ -145,7 +147,8 @@ src/template.html   # HTML + CSS + arayüz iskeleti
 src/game.js         # sahne, harita, dokular, silah modelleri
 src/audio.js        # WebAudio ses motoru, girdi, oyuncu durumu
 src/bots.js         # avatarlar (insan/asker/zombi), navigasyon/A*, görüş hattı, bot AI, efektler
-src/allies.js       # 2 dost bot + gün saati/gökyüzü/lambalar
+src/allies.js       # kule nöbetçileri (asker AI) + gün saati/gökyüzü/lambalar
+src/intro.js        # gece uyanma sinematiği + oyuncu bedeni animasyonu
 src/gameplay.js     # ateş/hasar, dalgalar, mağaza, HUD, radar, ana döngü
 vendor/three.min.js # Three.js r149 (MIT)
 ```
@@ -158,6 +161,7 @@ python3 tools/build.py
 
 ## Sürüm geçmişi
 
+- **v1.4.0** — gece yatakta uyanma sinematiği (alarm + merdivenden iniş, animasyonlu karakter), tel örgü hattının 4 köşesinde kule + her kulede 1 asker, yanında gezen dost botlar kaldırıldı, **sonsuz dalga**, harita 124 × 124 m
 - **v1.3.1** — askerler bizim tarafa geçti (devlet devriyeleri), düşman yalnızca zombiler, dost botlar gerçekten savaşıyor (mevzi + cephe)
 - **v1.3.0** — harita 110×110 m'ye büyütüldü (karakol, kontrol noktaları, okul, depo, cami, pazar), BÜYÜK DALGA, geniş kamera açısı, OBB çarpışma
 - **v1.2.0** — 2 dost bot, her dalgada değişen gün saati, eldivenli eller

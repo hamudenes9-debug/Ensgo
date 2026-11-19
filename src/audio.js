@@ -79,6 +79,21 @@
       deny: function () { tone(180, 0.16, 'square', 0.1); },
       step: function () { noise(0.07, 'lowpass', rand(600, 340), 1.2, 0.055, 0.08, 160); },
       zombie: function () { tone(72, 0.55, 'sawtooth', 0.085, 46); noise(0.3, 'lowpass', 420, 1.2, 0.07, 0.2, 160); },
+      alarm: function () {
+        // hava savunma / mahalle alarmı: iki tonlu, 3 tekrar
+        for (var i = 0; i < 3; i++) {
+          setTimeout(function (k) {
+            return function () {
+              tone(760, 0.42, 'square', 0.085, 470);
+              setTimeout(function () { tone(470, 0.42, 'square', 0.085, 760); }, 430);
+            };
+          }(i), i * 880);
+        }
+      },
+      heartbeat: function () {
+        tone(58, 0.16, 'sine', 0.16, 42);
+        setTimeout(function () { tone(50, 0.2, 'sine', 0.12, 38); }, 190);
+      },
       siren: function () {
         tone(520, 0.7, 'square', 0.075, 880);
         setTimeout(function () { tone(880, 0.7, 'square', 0.075, 520); }, 620);
@@ -104,6 +119,8 @@
     if (['w', 'a', 's', 'd', ' ', 'r', 'b', '1', '2', '3', '4', 'shift', 'control', 'escape', 'enter', 'tab', 'q', 'e'].indexOf(k) >= 0) e.preventDefault();
     if (keys[k]) return;
     keys[k] = true;
+    // sinematik: herhangi bir tuş / Esc ile atla
+    if (typeof INTRO !== 'undefined' && INTRO.active && (k === 'escape' || k === ' ' || k === 'enter')) { introSkip(); return; }
     if (k === ' ' && G.state === 'playing') player.wantJump = true;
     if (k === 'r' && G.state === 'playing') tryReload();
     if (k === '1') switchWeapon('knife');
@@ -134,6 +151,7 @@
   window.addEventListener('mousemove', onMouseMove);
 
   canvas.addEventListener('mousedown', function (e) {
+    if (typeof INTRO !== 'undefined' && INTRO.active) { introSkip(); return; }
     if (G.state !== 'playing') return;
     Audio2.init(); Audio2.resume();
     if (!G.pointerLocked) {
@@ -162,6 +180,10 @@
   /* ==================================================================
      OYUNCU + SİLAH DURUMU
   ================================================================== */
+  // oyuncunun kendi bedeni (sinematikte ve üçüncü şahısta görünür)
+  var playerBody = null;
+  var playerBodyVis = false;
+
   var player = {
     pos: V3(0, 0, 16), vel: V3(0, 0, 0),
     yaw: 0, pitch: 0, hp: 100, armor: 0, maxHp: 100,

@@ -8,7 +8,8 @@
     cross: $('crosshair'), hit: $('hitmarker'), hurt: $('hurt'), banner: $('banner'),
     hint: $('hint'), hitdir: $('hitdir'), dmgLayer: $('dmgLayer'), zoneWarn: $('zoneWarn'),
     radar: $('radar'), allyBox: $('allyBox'), timeIcon: $('timeIcon'),
-    timeName: $('timeName'), timeSub: $('timeSub'), allyMode: $('allyMode')
+    timeName: $('timeName'), timeSub: $('timeSub'), allyMode: $('allyMode'),
+    black: $('black')
   };
   var radarCtx = HUD.radar ? HUD.radar.getContext('2d') : null;
 
@@ -502,38 +503,35 @@
     return bot;
   }
 
-  // Devlet kontrol noktalarından çıkan devriyeler — bizim tarafımızda savaşırlar
-  var CHECKPOINTS = [
-    { x: -32, z: 4, rot: 0 }, { x: -32, z: -26, rot: 0 },
-    { x: 28, z: 4, rot: 0 }, { x: -10, z: -38, rot: Math.PI }
-  ];
-  var patrols = [];
-  function spawnPatrol(cpIdx) {
-    var cp = CHECKPOINTS[cpIdx % CHECKPOINTS.length];
-    var side = (cpIdx % 2 === 0 ? 1 : -1);
-    var pname = PATROL_NAMES[cpIdx % PATROL_NAMES.length];
-    var a = new Ally('devriye', cpIdx + 2, cp.x + side * 4.6, cp.z + 2.8, pname);
-    a.checkpoint = cpIdx % CHECKPOINTS.length;
-    patrols.push(a);
-    allies.push(a);
-    Effects.sparks(V3(a.pos.x, 1.2, a.pos.z), 8, 0x9ecb6a);
-    hint('DEVRİYE KATILDI — ' + a.name + ' (/kontrol noktası)', 1.8);
-    return a;
-  }
-  function spawnPatrols() {
-    for (var i = 0; i < CHECKPOINTS.length; i++) spawnPatrol(i);
-  }
-  function clearPatrols() {
-    for (var i = 0; i < patrols.length; i++) {
-      var idx = allies.indexOf(patrols[i]);
-      if (idx >= 0) allies.splice(idx, 1);
-      if (patrols[i].root) scene.remove(patrols[i].root);
+  // TEL ÖRGÜ HATTI: 4 köşe kulesi, her kulede 1 askerimiz (sabit nöbetçi)
+  var towerGuards = [];
+  function spawnTowerGuards() {
+    clearTowerGuards();
+    for (var i = 0; i < TOWERS.length; i++) {
+      var tw = TOWERS[i];
+      var g = new Ally('tower', i + 10, tw.post.x, tw.post.z, TOWER_NAMES[i % TOWER_NAMES.length], tw.deckY + 0.18);
+      g.fixed = true;
+      g.fixedY = tw.deckY + 0.18;
+      g.home = { x: tw.post.x, y: tw.deckY + 0.18, z: tw.post.z };
+      g.towerIdx = i;
+      // kule işareti (bayrak rengi)
+      towerGuards.push(g);
+      allies.push(g);
     }
-    patrols.length = 0;
   }
+  function clearTowerGuards() {
+    for (var i = 0; i < towerGuards.length; i++) {
+      var idx = allies.indexOf(towerGuards[i]);
+      if (idx >= 0) allies.splice(idx, 1);
+      if (towerGuards[i].root) scene.remove(towerGuards[i].root);
+    }
+    towerGuards.length = 0;
+  }
+  var TOWER_NAMES = ['Kule 1 · Kuzeybatı', 'Kule 2 · Kuzeydoğu', 'Kule 3 · Güneybatı', 'Kule 4 · Güneydoğu'];
 
+  // SONSUZ DALGA: dalga sayısının üst sınırı yok, düşman sayısı yumuşak artar
   function waveCount(w) {
-    return Math.min(30, 4 + Math.round(w * 2.1));
+    return Math.min(60, 4 + Math.round(w * 2.1));
   }
 
   function startWave(n) {
@@ -569,13 +567,8 @@
       }
       G.spawnQueue.push(type);
     }
-    // dalga 1: 2 devriye, sonra her 3. dalgada bir yeni devriye (en fazla 5)
-    if (n === 1) {
-      spawnPatrol(0); spawnPatrol(1);
-    } else if (n % 3 === 0 && patrols.length < 5) {
-      spawnPatrol(patrols.length % CHECKPOINTS.length);
-    }
-    if (n === 1) hint('DEVLET DEVRİYELERİ YANINDA — düşman sadece zombiler!', 3.4);
+    // kule nöbetçileri 1. dalgada yerlerini alır (oyun boyunca orada kalırlar)
+    if (n === 1 && !towerGuards.length) spawnTowerGuards();
     G.enemiesLeft = G.spawnQueue.length;
     HUD.waveNo.textContent = 'DALGA ' + n;
     // her dalgada zaman değişir: şafak → öğle → gün batımı → gece
@@ -584,11 +577,11 @@
     if (G.bigWave) {
       banner('BÜYÜK DALGA ' + n, '🔥 ' + G.spawnQueue.length + ' DÜŞMAN · BİRLİKTE VURUN', 3.2);
       Audio2.siren();
-      hint('BÜYÜK DALGA — MEVZİYİ TUT, DOSTLAR YANINDA!', 3.6);
+      hint('BÜYÜK DALGA — MEVZİYİ TUT, KULELER ATEŞE HAZIR!', 3.6);
     } else {
       banner('DALGA ' + n, (TIMES[(n - 1) % TIMES.length].icon + ' ' + TIMES[(n - 1) % TIMES.length].name + ' · ' + TIMES[(n - 1) % TIMES.length].sub), 2.4);
       Audio2.wave();
-      hint('Zombi sürüsü mahalleye giriyor — devriyeler ve dostlar yanında!', 3.2);
+      hint('Zombi sürüsü mahalleye giriyor — kule nöbetçileri tepeden vuruyor!', 3.2);
     }
     G.state = 'playing';
     requestLock();
@@ -600,7 +593,8 @@
       G.spawnTimer -= dt;
       if (G.spawnTimer <= 0) {
         var alive = bots.filter(function (b) { return !b.dead; }).length;
-        if (alive < 9) {
+        var liveLimit = Math.min(20, 9 + Math.floor(G.wave / 3));   // sonsuz dalga: kalabalık artar
+        if (alive < liveLimit) {
           var t = G.spawnQueue.shift();
           spawnBot(t, G.wave);
           G.spawnTimer = rand(1.5, 0.7);
@@ -618,19 +612,21 @@
     for (var i = 0; i < bots.length; i++) if (!bots[i].dead) alive++;
     var left = alive + G.spawnQueue.length;
     G.enemiesLeft = left;
-    HUD.waveInfo.innerHTML = '🧟 Kalan zombi: <b>' + left + '</b>' + (patrols.length ? ' · 🪖 ' + patrols.filter(function (p) { return !p.dead; }).length + ' devriye' : '');
+    HUD.waveInfo.innerHTML = '🧟 Kalan zombi: <b>' + left + '</b>' +
+      (towerGuards.length ? ' · 🪖 ' + towerGuards.filter(function (p) { return !p.dead; }).length + '/4 kule' : '');
   }
 
   function waveComplete() {
     G.waveActive = false;
-    var bonus = 220 + G.wave * 85;
+    var bonus = 200 + Math.min(26, G.wave) * 85;   // sonsuz dalgada ekonomi patlamasın
     bonus += (G.wave >= 3 ? 120 : 0);   // zombi dalgaları daha cömert
     if (G.bigWave) bonus = Math.round(bonus * 1.6);
     G.bigWave = false;
     addMoney(bonus);
     Audio2.clear();
     banner('DALGA TEMİZ', 'BONUS ₺' + bonus, 2.4);
-    G.shopDelay = 1.1;   // oyun zamanıyla mağazaya geçiş
+    G.shopDelay = 0.9;   // oyun zamanıyla mağazaya geçiş
+    G.waveStreak = (G.waveStreak || 0) + 1;
     hint('DALGA TEMİZ — MAĞAZA AÇILIYOR', 2.2);
   }
 
@@ -840,21 +836,22 @@
     Audio2.init(); Audio2.resume();
     clearBots(); clearPickups();
     resetPlayer();
-    G.state = 'playing';
-    G.started = true;
     G.suppressPause = true;
     $('start').classList.add('hidden');
     $('over').classList.add('hidden');
     $('shop').classList.add('hidden');
     $('pause').classList.add('hidden');
     HUD.hud.classList.add('on');
-    spawnAllies();
-    clearPatrols();
-    // başlangıç: bıçak + tabanca, 500 TL
-    requestLock();
-    setTimeout(function () { G.suppressPause = false; }, 300);
-    startWave(1);
+    clearTowerGuards();     // önce kule nöbetçileri (allies içinden çıkarılır)
+    clearAllies();          // gezici dost bot yok — sadece kuledeki askerlerimiz
+    G.started = true;
+    // ---- GECE UYANMA SİNEMATİĞİ (atlama düğmesi ile geçilebilir)
+    introStart();
+    if (HUD.black) HUD.black.style.opacity = '1';
+    var skipBtn = $('introSkip');
+    if (skipBtn) skipBtn.classList.remove('hidden');
     updateMoneyHud();
+    setTimeout(function () { G.suppressPause = false; }, 300);
   }
 
   function pauseGame() {
@@ -872,7 +869,7 @@
   }
   function toMenu() {
     exitLock();
-    clearBots(); clearPickups(); clearPatrols(); clearAllies();
+    clearBots(); clearPickups(); clearTowerGuards(); clearAllies();
     G.state = 'menu';
     HUD.hud.classList.remove('on');
     $('pause').classList.add('hidden');
@@ -897,6 +894,13 @@
   var raf = window.requestAnimationFrame || function (f) { return setTimeout(function () { f(performance.now()); }, 16); };
 
   function simulate(dt) {
+    if (G.state === 'intro') {
+      introUpdate(dt);
+      Effects.update(dt);
+      updateTimeOfDay(dt);
+      updateStars(dt);
+      return;
+    }
     if (G.state === 'playing' || G.state === 'paused') {
       if (G.state === 'playing') updatePlayer(dt);
       var bdt = G.state === 'playing' ? dt : 0;
@@ -943,6 +947,7 @@
     G.t += dt;
     if (G.state !== 'menu') simulate(dt);
     else Effects.update(dt);
+    if (G.state === 'intro') { mobileSync(); drawRadar(); renderAll(); return; }
     mobileSync();
     updateAllyHud(dt);
     updateTimeHud();
@@ -1147,6 +1152,8 @@
   ================================================================== */
   function bindUI() {
     $('playBtn').addEventListener('click', function () { startGame(); });
+    var skipBtn2 = $('introSkip');
+    if (skipBtn2) skipBtn2.addEventListener('click', function (e) { e.stopPropagation(); introSkip(); });
     $('againBtn').addEventListener('click', function () { startGame(); });
     $('menuBtn').addEventListener('click', function () { toMenu(); });
     $('quitBtn').addEventListener('click', function () { toMenu(); });
@@ -1249,10 +1256,10 @@
     sun: sun, hemi: hemi, ambient: ambient, skyDome: function () { return skyDome; },
     items: SHOP_ITEMS, weapons: WEAPONS, hurt: hurtPlayer, spawn: spawnBot,
     openShop: openShop, los: losBlocked, findPath: findPath, grid: grid, GN: GN, CELL: CELL,
-    HALF: HALF, COL: COL, pickups: pickups, patrols: patrols, checkpoints: CHECKPOINTS,
-    allyTypes: typeof ALLY_TYPES !== 'undefined' ? ALLY_TYPES : null,
+    HALF: HALF, COL: COL, pickups: pickups, towerGuards: towerGuards,
     enemyTypes: typeof ENEMY_TYPES !== 'undefined' ? ENEMY_TYPES : null,
-    spawnPatrol: spawnPatrol, syncCam: function () {
+    spawnTowerGuards: spawnTowerGuards, intro: INTRO, playerBody: function () { return playerBody; },
+    towers: TOWERS, home: HOME, introSkip: introSkip, syncCam: function () {
       camera.position.set(player.pos.x, player.eyeCur + player.jumpY, player.pos.z);
       camera.rotation.set(player.pitch, player.yaw, 0);
       camera.updateMatrixWorld(true);
