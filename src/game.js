@@ -17,9 +17,9 @@
   /* ------------------------------------------------------------------
      SABİTLER
   ------------------------------------------------------------------ */
-  var HALF = 34;              // oyun alanı yarı genişliği
-  var FENCE = 33.2;           // tel örgü çizgisi
-  var EYE = 1.66;             // göz yüksekliği
+  var HALF = 55;              // oyun alanı yarı genişliği (büyük map)
+  var FENCE = 54;             // tel örgü çizgisi
+  var EYE = 1.72;             // göz yüksekliği (geniş haritada daha ferah görüş)
   var GRAV = 22;
   var STEP = 0.1;
 
@@ -47,6 +47,20 @@
   };
 
   // bdmg = botun oyuncuya verdiği hasar (oyuncu silahlarından bağımsız dengelenmiş)
+  // Devlet kontrol noktası askerleri (ilk dalgalar) + zombiler (sonraki dalgalar)
+  var ENEMY_TYPES = {
+    soldier: { key: 'soldier', name: 'DEVLET ASKERİ', hp: 150, speed: 3.1, weapon: 'm4a4', money: 120,
+      acc: 0.115, react: 0.42, bdmg: 13, brate: 0.5, soldier: true },
+    sergeant: { key: 'sergeant', name: 'ÇAVUŞ', hp: 260, speed: 2.7, weapon: 'ak47', money: 210,
+      acc: 0.14, react: 0.5, bdmg: 18, brate: 0.62, soldier: true },
+    walker: { key: 'walker', name: 'ZOMBİ', hp: 110, speed: 2.95, weapon: 'claw', money: 90,
+      acc: 0.02, react: 0.3, bdmg: 12, brate: 1.4, zombie: true },
+    runner: { key: 'runner', name: 'KOŞAN ZOMBİ', hp: 80, speed: 5.1, weapon: 'claw', money: 110,
+      acc: 0.02, react: 0.2, bdmg: 10, brate: 1.2, zombie: true },
+    brute: { key: 'brute', name: 'DEV ZOMBİ', hp: 480, speed: 2.5, weapon: 'claw', money: 300,
+      acc: 0.02, react: 0.4, bdmg: 26, brate: 1.7, zombie: true, scale: 1.25 }
+  };
+
   var BOT_TYPES = {
     thug: { key: 'thug', name: 'SERSERİ', hp: 100, speed: 3.15, weapon: 'pistol', money: 70, acc: 0.155, react: 0.55, bdmg: 9, brate: 0.62 },
     rifleman: { key: 'rifleman', name: 'TETİKÇİ', hp: 125, speed: 3.0, weapon: 'm4a4', money: 105, acc: 0.125, react: 0.46, bdmg: 12, brate: 0.52 },
@@ -54,6 +68,11 @@
     heavy: { key: 'heavy', name: 'KASLI', hp: 235, speed: 2.3, weapon: 'ak47', money: 190, acc: 0.15, react: 0.62, bdmg: 20, brate: 0.86 },
     knifer: { key: 'knifer', name: 'BIÇAKÇI', hp: 95, speed: 4.3, weapon: 'knife', money: 85, acc: 0.02, react: 0.3, bdmg: 15, brate: 1.1 }
   };
+
+  var ZOMBIE_NAMES = ['Hasta Sıfır', 'Çürük', 'Kanlı Kemal', 'Sürünen', 'Isıran', 'Kemik', 'Yaşayan Ölü',
+    'Tırnak', 'Gözsüz', 'Sarı Surat', 'Paslı', 'Kurtlu', 'Sessiz', 'Kefen', 'Mezar Kaçkını'];
+  var SOLDIER_NAMES = ['Onbaşı Erdem', 'Çavuş Tolga', 'Nöbetçi', 'Komando', 'Sınır Bekçisi',
+    'Devriye', 'Zabıta', 'Kıdemli Er', 'Kalkan', 'Kontrol Noktası'];
 
   var BOT_NAMES = ['Kel Ali', 'Delikanlı', 'Sarı Selim', 'Karaoğlan', 'Çengel', 'Tırnakçı', 'Bıçkın',
     'Maço', 'Kabadayı', 'Sokak Çocuğu', 'Fırlama', 'Zeybek', 'Kör Şükrü', 'Şamar', 'Kanca',
@@ -392,19 +411,19 @@
       var c2 = boxMesh(0.24, 0.20, d, MAT.curb);
       c2.position.set(x - w / 2, 0.10, z); world.add(c2);
     }
-    sidewalk(0, -6.6, 68, 3.4);      // ana cadde kuzey yakası
-    sidewalk(0, 14.8, 68, 3.4);      // ana cadde güney yakası
+    sidewalk(0, -6.6, 106, 3.4);     // ana cadde kuzey yakası
+    sidewalk(0, 14.8, 106, 3.4);     // ana cadde güney yakası
     sidewalkV(-14.6, 3.5, 3.4, 18);  // çapraz sokak batı yakası
     sidewalkV(8.6, 3.5, 3.4, 18);    // çapraz sokak doğu yakası
 
     // Yol çizgileri (ana cadde z=4, çapraz sokak x=-3)
     var lineMat = new T.MeshStandardMaterial({ color: 0xe8e2c8, roughness: 0.9 });
-    for (var i = -30; i < 32; i += 7) {
+    for (var i = -50; i < 52; i += 7) {
       var dash = new T.Mesh(new T.PlaneGeometry(3.4, 0.26), lineMat);
       dash.rotation.x = -Math.PI / 2; dash.position.set(i, 0.075, 4);
       world.add(dash);
     }
-    for (var j = -16; j < 30; j += 7) {
+    for (var j = -52; j < 52; j += 7) {
       if (j > -6 && j < 14) continue;
       var dash2 = new T.Mesh(new T.PlaneGeometry(0.26, 3.4), lineMat);
       dash2.rotation.x = -Math.PI / 2; dash2.position.set(-3, 0.075, j);
@@ -596,8 +615,19 @@
     g.position.set(x, 0, z); g.rotation.y = rot;
     g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; SOLIDS.push(o); } });
     world.add(g);
-    addCol(x, z, 2.1, 4.4, rot);
+    addColOBB(x, z, 2.1, 4.4, rot);
     return g;
+  }
+
+  // Dönük kutular için OBB çarpışma kaydı
+  function addColOBB(x, z, w, d, rot) {
+    var hw = w / 2, hd = d / 2;
+    var c = Math.abs(Math.cos(rot)), s2 = Math.abs(Math.sin(rot));
+    COL.push({
+      minX: x - (w * c + d * s2) / 2, maxX: x + (w * c + d * s2) / 2,
+      minZ: z - (w * s2 + d * c) / 2, maxZ: z + (w * s2 + d * c) / 2,
+      cx: x, cz: z, hw: hw, hd: hd, rot: rot
+    });
   }
 
   // --- Ağaç ---
@@ -719,7 +749,7 @@
     g.position.set(x, 0, z); g.rotation.y = rot || 0;
     g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.geometry.type === 'BoxGeometry' && o.position.y < 1.1) SOLIDS.push(o); } });
     world.add(g);
-    addCol(x, z, 2.9, 2.1, rot || 0);
+    addColOBB(x, z, 2.9, 2.1, rot || 0);
     return g;
   }
 
@@ -742,6 +772,157 @@
     g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; SOLIDS.push(o); } });
     world.add(g);
     addCol(x, z, 4.0, 4.0);
+    return g;
+  }
+
+  // --- Özel yapılar (büyük map için) ---
+  function buildBlock(cx, cz, w, d, floors, opts) {
+    opts = opts || {};
+    var h = buildBuilding(cx, cz, w, d, floors, opts);
+    // çatıya tabela/mimari detay
+    if (opts.rooftop) {
+      var m = boxMesh(w * 0.5, 0.5, d * 0.5, MAT.concrete);
+      m.position.set(cx, h + 0.6, cz); m.castShadow = true; world.add(m);
+    }
+    return h;
+  }
+
+  function buildSchool(cx, cz) {
+    // okul: uzun bina + avlu + basketbol sahası
+    var h = buildBuilding(cx, cz, 20, 12, 3, { style: 'plaster', color: '#c9c0a8' });
+    var signTex2 = signTex('İLKOKUL', '#20406b', '#ffffff', 'MAHALLE MEKTEBİ');
+    var sm = new T.Mesh(new T.PlaneGeometry(9, 2.2), new T.MeshStandardMaterial({ map: signTex2, roughness: 0.6, emissive: 0xffffff, emissiveMap: signTex2, emissiveIntensity: 0.25 }));
+    sm.position.set(cx, 5.4, cz + 6.1); world.add(sm);
+    // avlu zemini
+    var court = boxMesh(14, 0.06, 10, new T.MeshStandardMaterial({ color: 0x3f5a4a, roughness: 0.92 }));
+    court.position.set(cx, 0.04, cz + 13); court.receiveShadow = true; world.add(court);
+    // potalar
+    [-5.5, 5.5].forEach(function (dx) {
+      var pole = boxMesh(0.16, 3.2, 0.16, MAT.darkMetal); pole.position.set(cx + dx, 1.6, cz + 13); pole.castShadow = true; world.add(pole);
+      var board = boxMesh(1.7, 1.1, 0.09, MAT.white); board.position.set(cx + dx, 3.1, cz + 13); board.castShadow = true; world.add(board);
+      var hoop = new T.Mesh(new T.TorusGeometry(0.32, 0.045, 6, 14), new T.MeshStandardMaterial({ color: 0xd9532f, roughness: 0.5 }));
+      hoop.rotation.x = Math.PI / 2; hoop.position.set(cx + dx, 2.78, cz + 13.5); world.add(hoop);
+      addCol(cx + dx, cz + 13, 0.3, 0.3);
+    });
+    // okul bahçesi çiti (alçak)
+    for (var i = -3; i <= 3; i++) {
+      var post = boxMesh(0.08, 1.2, 0.08, MAT.metal);
+      post.position.set(cx + i * 2, 0.6, cz + 18.2); world.add(post);
+    }
+    var rail = boxMesh(13, 0.06, 0.06, MAT.metal);
+    rail.position.set(cx, 1.15, cz + 18.2); world.add(rail);
+    return h;
+  }
+
+  function buildPolice(cx, cz) {
+    // karakol: mavi-beyaz bina + bariyer + bayrak
+    var h = buildBuilding(cx, cz, 14, 10, 2, { style: 'plaster', color: '#dfe3e8' });
+    var tx = signTex('KARAKOL', '#173a63', '#ffffff', 'DEVLET KONTROL NOKTASI');
+    var sm = new T.Mesh(new T.PlaneGeometry(7.4, 1.9), new T.MeshStandardMaterial({ map: tx, roughness: 0.55, emissive: 0xffffff, emissiveMap: tx, emissiveIntensity: 0.3 }));
+    sm.position.set(cx, 4.4, cz + 5.1); world.add(sm);
+    // flaşör (mavi kırmızı)
+    var fl1 = new T.Mesh(new T.SphereGeometry(0.16, 8, 6), new T.MeshBasicMaterial({ color: 0x3b7bff }));
+    fl1.position.set(cx - 2.2, 5.2, cz + 5.05); world.add(fl1);
+    var fl2 = new T.Mesh(new T.SphereGeometry(0.16, 8, 6), new T.MeshBasicMaterial({ color: 0xff3b3b }));
+    fl2.position.set(cx + 2.2, 5.2, cz + 5.05); world.add(fl2);
+    G.policeLights = [fl1, fl2];
+    // bariyer: kırmızı-beyaz çubuk
+    for (var i = 0; i < 5; i++) {
+      var bar = boxMesh(2.2, 0.16, 0.16, new T.MeshStandardMaterial({ color: i % 2 ? 0xd8d8d8 : 0xc0392b, roughness: 0.7 }));
+      bar.position.set(cx - 4.4 + i * 2.2, 1.0, cz + 8.4); world.add(bar);
+    }
+    [-4.4, 4.4].forEach(function (dx) {
+      var leg = boxMesh(0.14, 1.1, 0.14, MAT.darkMetal);
+      leg.position.set(cx + dx, 0.55, cz + 8.4); world.add(leg);
+    });
+    // bayrak direği
+    var fpole = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, 7, 6), MAT.metal);
+    fpole.position.set(cx + 8, 3.5, cz + 6); world.add(fpole);
+    var flag = boxMesh(2.2, 1.3, 0.04, new T.MeshStandardMaterial({ color: 0xc42222, roughness: 0.85, side: T.DoubleSide }));
+    flag.position.set(cx + 9.1, 6.2, cz + 6); world.add(flag);
+    addCol(cx + 8, cz + 6, 0.4, 0.4);
+    return h;
+  }
+
+  function buildWarehouse(cx, cz, w, d) {
+    var h = buildBuilding(cx, cz, w, d, 1, { style: 'brick', color: '#8f8378' });
+    // sundurma
+    var roof = boxMesh(w + 1.2, 0.16, d * 0.55, new T.MeshStandardMaterial({ color: 0x6b3f2a, roughness: 0.9 }));
+    roof.position.set(cx, 3.4, cz + d / 2 + 1.6); roof.rotation.x = 0.08; roof.castShadow = true; world.add(roof);
+    for (var i = -1; i <= 1; i++) {
+      var leg = boxMesh(0.14, 3.4, 0.14, MAT.darkMetal);
+      leg.position.set(cx + i * (w / 3), 1.7, cz + d / 2 + 3.0); world.add(leg);
+    }
+    return h;
+  }
+
+  function buildMosque(cx, cz) {
+    var h = buildBuilding(cx, cz, 12, 12, 2, { style: 'plaster', color: '#d8d2c2' });
+    // kubbe
+    var dome = new T.Mesh(new T.SphereGeometry(4.2, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+      new T.MeshStandardMaterial({ color: 0x4a6b6b, roughness: 0.5, metalness: 0.3 }));
+    dome.position.set(cx, h + 0.1, cz); dome.castShadow = true; world.add(dome);
+    var finial = new T.Mesh(new T.ConeGeometry(0.16, 0.7, 6), MAT.lampWarm);
+    finial.position.set(cx, h + 4.5, cz); world.add(finial);
+    // minare
+    var min = new T.Mesh(new T.CylinderGeometry(0.55, 0.7, 15, 10), new T.MeshStandardMaterial({ color: 0xd8d2c2, roughness: 0.85 }));
+    min.position.set(cx + 8.2, 7.5, cz); min.castShadow = true; world.add(min);
+    var balc = new T.Mesh(new T.CylinderGeometry(1.0, 1.0, 0.3, 12), MAT.concrete);
+    balc.position.set(cx + 8.2, 11.4, cz); world.add(balc);
+    var minTop = new T.Mesh(new T.ConeGeometry(0.75, 2.4, 8), new T.MeshStandardMaterial({ color: 0x4a6b6b, roughness: 0.5, metalness: 0.3 }));
+    minTop.position.set(cx + 8.2, 16.1, cz); minTop.castShadow = true; world.add(minTop);
+    addCol(cx + 8.2, cz, 1.6, 1.6);
+    return h;
+  }
+
+  // --- Askeri kontrol noktası (dalgası: devlet kontrolü) ---
+  function buildCheckpoint(x, z, rot) {
+    var g = new T.Group();
+    var rotY = rot || 0;
+    // beton bariyerler
+    for (var i = -2; i <= 2; i++) {
+      if (i === 0) continue;
+      var block = boxMesh(2.0, 1.1, 0.7, new T.MeshStandardMaterial({ color: 0xa8a49a, roughness: 0.95 }));
+      block.position.set(i * 2.3, 0.55, 0); block.castShadow = true; block.receiveShadow = true;
+      g.add(block);
+    }
+    // kırmızı-beyaz bariyer çubuğu
+    for (var j = -3; j <= 3; j++) {
+      if (j === 0) continue;
+      var bar = boxMesh(0.9, 0.14, 0.14, new T.MeshStandardMaterial({ color: j % 2 ? 0xdedede : 0xc0392b, roughness: 0.7 }));
+      bar.position.set(j * 0.9, 1.05, 0); g.add(bar);
+    }
+    // nöbet kulübesi
+    var hut = boxMesh(2.2, 2.6, 2.2, new T.MeshStandardMaterial({ color: 0x9aa4ad, roughness: 0.8 }));
+    hut.position.set(-5.2, 1.3, 1.4); hut.castShadow = true; g.add(hut);
+    var hutRoof = boxMesh(2.6, 0.16, 2.6, MAT.darkMetal);
+    hutRoof.position.set(-5.2, 2.7, 1.4); g.add(hutRoof);
+    var win = boxMesh(0.06, 0.6, 1.2, MAT.glass);
+    win.position.set(-4.06, 1.75, 1.4); g.add(win);
+    // projektör direği
+    var pole = new T.Mesh(new T.CylinderGeometry(0.09, 0.12, 5.4, 7), MAT.darkMetal);
+    pole.position.set(5.0, 2.7, 1.2); g.add(pole);
+    var lampHead = boxMesh(0.7, 0.22, 0.4, MAT.darkMetal);
+    lampHead.position.set(5.0, 5.4, 1.2); g.add(lampHead);
+    var lampBulb = boxMesh(0.55, 0.08, 0.3, new T.MeshBasicMaterial({ color: 0xfff0c0 }));
+    lampBulb.position.set(5.0, 5.27, 1.2); g.add(lampBulb);
+    // kum torbaları
+    for (var k = 0; k < 5; k++) {
+      var bag = new T.Mesh(new T.BoxGeometry(0.7, 0.32, 0.46), new T.MeshStandardMaterial({ color: 0x7d7a5c, roughness: 1 }));
+      bag.position.set(-2.4 + (k % 3) * 0.75, 0.16 + Math.floor(k / 3) * 0.33, -1.3);
+      bag.rotation.y = rand(0.25, -0.25); bag.castShadow = true; g.add(bag);
+    }
+    // uyarı tabelası
+    var sign = new T.Mesh(new T.PlaneGeometry(2.4, 1.1), new T.MeshStandardMaterial({
+      map: signTex('DUR', '#b3261e', '#ffffff', 'KİMLİK KONTROLÜ'), roughness: 0.6,
+      emissive: 0xffffff, emissiveMap: signTex('DUR', '#b3261e', '#ffffff', 'KİMLİK KONTROLÜ'), emissiveIntensity: 0.35
+    }));
+    sign.position.set(-5.2, 3.2, 2.55); g.add(sign);
+    g.position.set(x, 0, z); g.rotation.y = rotY;
+    g.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; SOLIDS.push(o); } });
+    world.add(g);
+    addColOBB(x, z, 11.0, 1.4, rotY);
+    addColOBB(x - 5.2 * Math.cos(rotY) + 1.4 * Math.sin(rotY), z + 5.2 * Math.sin(rotY) + 1.4 * Math.cos(rotY), 2.4, 2.4, rotY);
     return g;
   }
 
@@ -824,6 +1005,92 @@
     gra1.position.set(-17.45, 1.8, -15.05); gra1.rotation.y = Math.PI / 2; world.add(gra1);
     var gra2 = new T.Mesh(new T.PlaneGeometry(5, 2.5), new T.MeshStandardMaterial({ map: TEX.graffiti, transparent: true, roughness: 0.9 }));
     gra2.position.set(12.45, 1.6, -15.05); gra2.rotation.y = Math.PI / 2; world.add(gra2);
+
+    // ============ BÜYÜK MAP: GENİŞLETİLMİŞ BÖLGELER ============
+    // --- BATI BÖLGESİ (karakol + kontrol noktası) ---
+    buildPolice(-44, -8);
+    buildCheckpoint(-32, 4, 0);
+    buildCheckpoint(-32, -26, 0);
+    buildBuilding(-44, -30, 14, 12, 3, { style: 'plaster', color: '#b7bcc2' });
+    buildBuilding(-46, 14, 12, 10, 4, { style: 'brick', color: '#9c6b54', shop: true, sign: 'KAHVE', signBg: '#4a3524', signSub: 'OCAK BAŞI' });
+    buildBuilding(-44, 30, 13, 12, 3, { style: 'plaster', color: '#c6bba4' });
+
+    // --- DOĞU BÖLGESİ (okul + depo) ---
+    buildSchool(41, -26);
+    buildWarehouse(44, 4, 16, 12);
+    buildBuilding(46, 24, 12, 14, 4, { style: 'plaster', color: '#bfc7c9', shop: true, sign: 'TERZİ', signBg: '#3a3a5a', signSub: 'DİKİŞ · TAMİR' });
+    buildBuilding(40, -44, 12, 9, 3, { style: 'brick', color: '#a0725a' });
+
+    // --- KUZEY BÖLGESİ (geniş meydan + cami) ---
+    buildMosque(-6, -46);
+    buildBuilding(-26, -44, 15, 11, 4, { style: 'plaster', color: '#c8bda6', shop: true, sign: 'FIRIN', signBg: '#2a4f86', signSub: 'TAŞ FIRIN' });
+    buildBuilding(18, -46, 14, 10, 3, { style: 'brick', color: '#96684f' });
+    buildBuilding(-46, -46, 11, 11, 3, { style: 'plaster', color: '#b3b8bd' });
+    buildBuilding(30, -34, 10, 8, 3, { style: 'plaster', color: '#cdc3ae', shop: true, sign: 'SIMİT', signBg: '#8a4a22', signSub: 'ÇAY OCAĞI' });
+
+    // --- GÜNEY BÖLGESİ (pazar alanı + otopark) ---
+    buildBuilding(-44, 44, 14, 12, 4, { style: 'brick', color: '#9f6c53' });
+    buildBuilding(-22, 46, 16, 10, 3, { style: 'plaster', color: '#c2c8ca', shop: true, sign: 'HALI', signBg: '#5a2a6a', signSub: 'YIKAMA' });
+    buildBuilding(4, 46, 12, 10, 4, { style: 'plaster', color: '#cbbfa8' });
+    buildBuilding(26, 44, 14, 12, 3, { style: 'brick', color: '#a3745b' });
+    buildBuilding(46, 42, 12, 12, 3, { style: 'plaster', color: '#b9bfc4', shop: true, sign: 'OTO', signBg: '#2a3a4a', signSub: 'YIKAMA · SERVİS' });
+
+    // --- Ana caddede ek dükkanlar ---
+    buildBuilding(-6, -20, 9, 8, 2, { style: 'plaster', color: '#cfc4ad', shop: true, sign: 'BÜFE', signBg: '#7a2a2a', signSub: 'GAZETE · ŞANS' });
+    buildBuilding(26, 20, 9, 9, 3, { style: 'brick', color: '#9b6f56', shop: true, sign: 'KUAFÖR', signBg: '#8f2f72', signSub: 'BAYAN · ERKEK' });
+    buildBuilding(-34, 20, 10, 9, 3, { style: 'plaster', color: '#c4bba6' });
+
+    // --- Yeni araçlar (geniş bölgeler) ---
+    buildCar(-30.5, 13.5, 0.03, 0x2f5f9e);
+    buildCar(30.5, 12.6, Math.PI, 0xb23a30);
+    buildCar(-30.5, -7.2, 0.02, 0x3b6b4a);
+    buildCar(32.5, -18.0, Math.PI / 2, 0xd8cfae);
+    buildCar(-32.0, 32.0, Math.PI / 2 + 0.03, 0x6f7078);
+    buildCar(6.0, -36.0, 0.03, 0xa8342f);
+    buildCar(-8.0, 36.5, Math.PI, 0x2f7f6a);
+    // askeri kamyon (kontrol noktası yanı)
+    buildCar(-40.0, 22.0, 0.02, 0x4a5a3a);
+    buildCar(38.0, 33.0, Math.PI / 2, 0x4a5a3a);
+
+    // --- Ağaçlar / lambalar / direkler (yeni bölgeler) ---
+    buildTree(-33.0, 18.0, 1.05); buildTree(33.0, 18.0, 1.0);
+    buildTree(-33.5, -18.0, 0.95); buildTree(34.0, -14.0, 1.05);
+    buildTree(-20.0, 30.0, 0.9); buildTree(20.0, 30.5, 1.0);
+    buildTree(-18.0, -33.0, 0.95); buildTree(14.0, -33.5, 1.05);
+    buildTree(-46.0, 0.0, 0.9); buildTree(48.0, -2.0, 0.95);
+    buildTree(-12.0, 46.0, 0.85); buildTree(16.0, 47.0, 0.9);
+    buildTree(44.0, 16.0, 1.0); buildTree(-44.0, -20.0, 0.9);
+
+    buildLamp(-32.0, -7.0, false); buildLamp(32.0, -7.0, true);
+    buildLamp(-32.0, 15.6, false); buildLamp(32.0, 15.6, true);
+    buildLamp(-16.0, 24.0, false); buildLamp(16.0, 24.0, true);
+    buildLamp(-16.0, -24.0, false); buildLamp(16.0, -24.0, true);
+    buildLamp(-42.0, 8.0, false); buildLamp(42.0, 8.0, true);
+    buildLamp(-4.0, 36.0, false); buildLamp(4.0, -36.0, true);
+
+    buildPole(-33.5, 24.0); buildPole(33.5, 24.0); buildPole(-33.5, -24.0); buildPole(33.5, -24.0);
+    wireBetween(V3(-33.5, 7.6, 24.0), V3(33.5, 7.6, 24.0), 1.6);
+    wireBetween(V3(-33.5, 7.6, -24.0), V3(33.5, 7.6, -24.0), 1.6);
+    wireBetween(V3(-33.5, 7.6, 24.0), V3(-33.5, 7.6, -24.0), 1.2);
+    wireBetween(V3(33.5, 7.6, 24.0), V3(33.5, 7.6, -24.0), 1.2);
+
+    // --- Yeni kasalar / variller / konteynerler ---
+    buildCrate(-36.0, -3.0, 1, 0.2); buildCrate(-37.2, -3.8, 0.85, -0.3);
+    buildCrate(36.0, 12.0, 1, 0.4); buildCrate(-8.0, 40.0, 0.9, 0.2);
+    buildCrate(22.0, -38.0, 1, 0.1); buildCrate(-24.0, 36.0, 0.8, 0.5);
+    buildBarrel(-35.0, 16.0); buildBarrel(35.0, -2.0, 0x8a4a2f);
+    buildBarrel(-30.0, -30.0, 0x2f5d8a); buildBarrel(28.0, 34.0, 0x6b6b2f);
+    buildDumpster(-40.0, 36.0, 0.2); buildDumpster(40.0, -30.0, 1.57);
+    buildDumpster(-48.0, -12.0, 1.57); buildDumpster(8.0, 40.0, 0.0);
+
+    // --- Yeni pazar tezgahları (güney meydan) ---
+    buildStall(-4.0, 34.0, 0.1, 0xd94f3d, 0xf2e9d8);
+    buildStall(6.0, 34.2, Math.PI, 0x2f7f6a, 0xf2e9d8);
+    buildStall(-40.0, 4.0, Math.PI / 2, 0x2f5f9e, 0xf2e9d8);
+
+    // --- Yol kapanı bariyerleri (kontrol noktası havası) ---
+    buildCheckpoint(28, 4, 0);
+    buildCheckpoint(-10, -38, Math.PI);
 
     // MAHALLE GİRİŞ TAKI
     var arch = new T.Group();

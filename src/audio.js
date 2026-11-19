@@ -78,6 +78,12 @@
       buy: function () { tone(880, 0.07, 'triangle', 0.12); setTimeout(function () { tone(1320, 0.09, 'triangle', 0.12); }, 70); },
       deny: function () { tone(180, 0.16, 'square', 0.1); },
       step: function () { noise(0.07, 'lowpass', rand(600, 340), 1.2, 0.055, 0.08, 160); },
+      zombie: function () { tone(72, 0.55, 'sawtooth', 0.085, 46); noise(0.3, 'lowpass', 420, 1.2, 0.07, 0.2, 160); },
+      siren: function () {
+        tone(520, 0.7, 'square', 0.075, 880);
+        setTimeout(function () { tone(880, 0.7, 'square', 0.075, 520); }, 620);
+        setTimeout(function () { tone(520, 0.8, 'square', 0.07, 780); }, 1240);
+      },
       wave: function () { tone(150, 0.5, 'sawtooth', 0.1, 300); setTimeout(function () { tone(300, 0.6, 'sawtooth', 0.09, 420); }, 260); },
       clear: function () { [523, 659, 784, 1046].forEach(function (f, i) { setTimeout(function () { tone(f, 0.22, 'triangle', 0.13); }, i * 110); }); },
       death: function () { tone(220, 0.9, 'sawtooth', 0.18, 60); noise(0.7, 'lowpass', 500, 1, 0.25, 0.8, 80); }
@@ -214,32 +220,59 @@
   /* ==================================================================
      ÇARPIŞMA
   ================================================================== */
+  function pushOutAABB(pos, radius, c) {
+    var nx = clamp(pos.x, c.minX, c.maxX);
+    var nz = clamp(pos.z, c.minZ, c.maxZ);
+    var dx = pos.x - nx, dz = pos.z - nz;
+    var d2 = dx * dx + dz * dz;
+    if (d2 >= radius * radius) return;
+    var d = Math.sqrt(d2);
+    if (d < 0.0001) {
+      var l = Math.abs(pos.x - c.minX), r = Math.abs(c.maxX - pos.x);
+      var t = Math.abs(pos.z - c.minZ), b = Math.abs(c.maxZ - pos.z);
+      var m = Math.min(l, r, t, b);
+      if (m === l) pos.x = c.minX - radius;
+      else if (m === r) pos.x = c.maxX + radius;
+      else if (m === t) pos.z = c.minZ - radius;
+      else pos.z = c.maxZ + radius;
+    } else {
+      var push = (radius - d) / d;
+      pos.x += dx * push; pos.z += dz * push;
+    }
+  }
+  function pushOutOBB(pos, radius, c) {
+    var cs = Math.cos(-c.rot), sn = Math.sin(-c.rot);
+    var dx = pos.x - c.cx, dz = pos.z - c.cz;
+    // yerel koordinat
+    var lx = dx * cs - dz * sn, lz = dx * sn + dz * cs;
+    var nx = clamp(lx, -c.hw, c.hw), nz = clamp(lz, -c.hd, c.hd);
+    var ox = lx - nx, oz = lz - nz;
+    var d2 = ox * ox + oz * oz;
+    if (d2 >= radius * radius) return;
+    var d = Math.sqrt(d2);
+    var px, pz;
+    if (d < 0.0001) {
+      // içeride: en yakın yüze it
+      var toX = c.hw - Math.abs(lx), toZ = c.hd - Math.abs(lz);
+      if (toX < toZ) { px = (lx < 0 ? -1 : 1) * (c.hw + radius); pz = lz; }
+      else { px = lx; pz = (lz < 0 ? -1 : 1) * (c.hd + radius); }
+    } else {
+      var push = (radius - d) / d;
+      px = lx + ox * push; pz = lz + oz * push;
+    }
+    // dünya koordinatına geri
+    var cs2 = Math.cos(c.rot), sn2 = Math.sin(c.rot);
+    pos.x = c.cx + px * cs2 - pz * sn2;
+    pos.z = c.cz + px * sn2 + pz * cs2;
+  }
   function collideCircle(pos, radius) {
     for (var i = 0; i < COL.length; i++) {
       var c = COL[i];
-      var nx = clamp(pos.x, c.minX, c.maxX);
-      var nz = clamp(pos.z, c.minZ, c.maxZ);
-      var dx = pos.x - nx, dz = pos.z - nz;
-      var d2 = dx * dx + dz * dz;
-      if (d2 < radius * radius) {
-        var d = Math.sqrt(d2);
-        if (d < 0.0001) {
-          // içerideyiz → en yakın kenara it
-          var l = Math.abs(pos.x - c.minX), r = Math.abs(c.maxX - pos.x);
-          var t = Math.abs(pos.z - c.minZ), b = Math.abs(c.maxZ - pos.z);
-          var m = Math.min(l, r, t, b);
-          if (m === l) pos.x = c.minX - radius;
-          else if (m === r) pos.x = c.maxX + radius;
-          else if (m === t) pos.z = c.minZ - radius;
-          else pos.z = c.maxZ + radius;
-        } else {
-          var push = (radius - d) / d;
-          pos.x += dx * push; pos.z += dz * push;
-        }
-      }
+      if (c.rot !== undefined) pushOutOBB(pos, radius, c);
+      else pushOutAABB(pos, radius, c);
     }
-    pos.x = clamp(pos.x, -HALF + 0.6, HALF - 0.6);
-    pos.z = clamp(pos.z, -HALF + 0.6, HALF - 0.6);
+    pos.x = clamp(pos.x, -HALF + 0.7, HALF - 0.7);
+    pos.z = clamp(pos.z, -HALF + 0.7, HALF - 0.7);
   }
 
   /* ==================================================================

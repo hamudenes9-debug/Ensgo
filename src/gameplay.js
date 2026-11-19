@@ -352,13 +352,22 @@
     // ---- kamera
     var adsT = ADS() ? 1 : 0;
     p.adsAmt = lerp(p.adsAmt === undefined ? 0 : p.adsAmt, adsT, Math.min(1, dt * 12));
-    camera.position.set(p.pos.x + p.bobX, p.eyeCur + p.jumpY + p.bobY, p.pos.z);
-    camera.rotation.set(
-      p.pitch + p.recoil * 0.35,
-      p.yaw + p.recoilYaw,
-      Math.sin(p.bob * 2.6) * 0.006 * bobAmp + (p.crouch ? 0 : 0)
+    // KAMERA AÇISI: göz hizası + hafif öne kayma → silah/eller kadrajda daha dengeli,
+    // zemin daha az yer kaplar, nişan çizgisi ufka daha yakın
+    var camFwd = 0.12 + p.adsAmt * 0.06;
+    camera.position.set(
+      p.pos.x + p.bobX + Math.sin(p.yaw) * -camFwd,
+      p.eyeCur + p.jumpY + p.bobY + 0.035,
+      p.pos.z + Math.cos(p.yaw) * -camFwd
     );
-    var targetFov = 74 - p.adsAmt * (74 - 74 / w.zoom) - p.sprintT * 5;
+    camera.rotation.set(
+      p.pitch + p.recoil * 0.35 + 0.018,
+      p.yaw + p.recoilYaw,
+      Math.sin(p.bob * 2.6) * 0.005 * bobAmp
+    );
+    // KAMERA: geniş görüş açısı (büyük haritada çevre kontrolü) + nişanda daralma
+    var baseFov = camera.aspect < 0.85 ? 88 : 80;
+    var targetFov = baseFov - p.adsAmt * (baseFov - baseFov / w.zoom) - p.sprintT * 4;
     camera.fov = lerp(camera.fov, targetFov, Math.min(1, dt * 10));
     camera.updateProjectionMatrix();
     viewCam.fov = 58 - p.adsAmt * 6;
@@ -507,26 +516,54 @@
     G.waveActive = true;
     G.spawnTimer = 0.6;
     G.spawnQueue = [];
-    var total = waveCount(n);
+        var total = waveCount(n);
+    // ---- DÜŞMAN KOMPOZİSYONU
+    // 1-2. dalga: devlet kontrol noktası askerleri · 3-5: karışık (asker+zombi)
+    // 6+: zombi sürüsü · her 5. dalga BÜYÜK DALGA (bonus + daha çok düşman)
+    G.bigWave = (n % 5 === 0);
+    if (G.bigWave) total = Math.round(total * 1.45) + 4;
+    var isSoldierWave = n <= 2;
+    var mixedWave = n === 3 || n === 4 || n === 5;
     for (var i = 0; i < total; i++) {
       var roll = Math.random();
-      var type = 'thug';
-      if (n >= 2 && roll > 0.62) type = 'rifleman';
-      if (n >= 3 && roll > 0.80) type = 'akman';
-      if (n >= 4 && roll > 0.92) type = 'heavy';
-      if (n >= 2 && Math.random() < 0.16) type = 'knifer';
+      var type;
+      if (isSoldierWave) {
+        type = (n >= 2 && roll > 0.72) ? 'sergeant' : 'soldier';
+      } else if (mixedWave) {
+        // askerler dağılmaya başlar, zombiler sokaklara iner
+        var zShare = n === 3 ? 0.55 : (n === 4 ? 0.72 : 0.85);
+        if (roll < zShare) {
+          if (roll < 0.16) type = 'runner';
+          else if (n >= 5 && roll > 0.42 && roll < 0.54) type = 'brute';
+          else type = 'walker';
+        } else {
+          type = roll > (zShare + (1 - zShare) * 0.65) ? 'sergeant' : 'soldier';
+        }
+      } else {
+        // zombi sürüsü
+        if (roll < 0.5) type = 'walker';
+        else if (roll < 0.78) type = 'runner';
+        else if (roll < 0.9) type = 'brute';
+        else type = (n % 3 === 0 && roll > 0.96) ? 'sergeant' : 'soldier';
+      }
       G.spawnQueue.push(type);
     }
-    // ilk dalgada hepsi serseri
-    if (n === 1) G.spawnQueue = G.spawnQueue.map(function () { return Math.random() < 0.25 ? 'knifer' : 'thug'; });
     G.enemiesLeft = G.spawnQueue.length;
     HUD.waveNo.textContent = 'DALGA ' + n;
     // her dalgada zaman değişir: şafak → öğle → gün batımı → gece
     setTimeOfDay(n - 1, false);
     updateWaveHud();
-    banner('DALGA ' + n, (TIMES[(n - 1) % TIMES.length].icon + ' ' + TIMES[(n - 1) % TIMES.length].name + ' · ' + TIMES[(n - 1) % TIMES.length].sub), 2.4);
-    Audio2.wave();
-    hint(G.spawnQueue.length + ' bot mahalleye giriyor — tel örgü hattını tut!', 3.2);
+    if (G.bigWave) {
+      banner('BÜYÜK DALGA ' + n, '🔥 ' + G.spawnQueue.length + ' DÜŞMAN · BİRLİKTE VURUN', 3.2);
+      Audio2.siren();
+      hint('BÜYÜK DALGA — MEVZİYİ TUT, DOSTLAR YANINDA!', 3.6);
+    } else {
+      banner('DALGA ' + n, (TIMES[(n - 1) % TIMES.length].icon + ' ' + TIMES[(n - 1) % TIMES.length].name + ' · ' + TIMES[(n - 1) % TIMES.length].sub), 2.4);
+      Audio2.wave();
+      var tag = isSoldierWave ? 'Devlet kontrol noktası askerleri geliyor' :
+        (mixedWave ? 'Askerler ve zombiler karışık geliyor' : 'Zombi sürüsü mahalleye giriyor');
+      hint(tag + ' — tel örgü hattını tut!', 3.2);
+    }
     G.state = 'playing';
     requestLock();
   }
@@ -561,6 +598,9 @@
   function waveComplete() {
     G.waveActive = false;
     var bonus = 220 + G.wave * 85;
+    bonus += (G.wave >= 3 ? 120 : 0);   // zombi dalgaları daha cömert
+    if (G.bigWave) bonus = Math.round(bonus * 1.6);
+    G.bigWave = false;
     addMoney(bonus);
     Audio2.clear();
     banner('DALGA TEMİZ', 'BONUS ₺' + bonus, 2.4);
@@ -1023,8 +1063,9 @@
       var inRange = d < R;
       if (!inRange) continue;
       var seen = b.seenT > 0;
-      c.fillStyle = seen ? '#ff4d5e' : 'rgba(255,120,80,.62)';
-      var s = b.type === 'heavy' ? 4.2 : 3.2;
+      if (b.isZombie) c.fillStyle = seen ? '#a6ff4d' : 'rgba(140,190,80,.55)';
+      else c.fillStyle = seen ? '#ff4d5e' : 'rgba(255,120,80,.62)';
+      var s = b.type === 'brute' ? 4.6 : (b.type === 'heavy' ? 4.2 : 3.2);
       c.beginPath(); c.arc(p.x, p.y, s, 0, 6.2832); c.fill();
       if (seen) {
         c.strokeStyle = 'rgba(255,77,94,.5)'; c.lineWidth = 1.2;

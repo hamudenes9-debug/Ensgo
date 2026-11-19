@@ -9,10 +9,12 @@ Sadece `index.html` dosyasını Chrome / Edge / Firefox'ta aç. Kurulum gerekmez
 
 ## Özellikler
 
-**Harita — tel örgüyle çevrili mahalle**
-- 68 × 68 m alan, dikenli telli tel örgü çit ve çelik direkler
+**Harita — tel örgüyle çevrili büyük mahalle (v1.3)**
+- **110 × 110 m** alan (eski 68 × 68 m'nin ~2,6 katı), dikenli telli tel örgü çit ve çelik direkler
+- Yeni bölgeler: batıda **karakol** + iki **devlet kontrol noktası**, doğuda **okul** ve **depo**, kuzeyde **cami** ve meydan, güneyde büyük **pazar**
 - Artı şeklinde iki cadde, kaldırımlar, yaya geçidi, rögar, su birikintisi
-- 9 mahalle binası: sıvalı/tuğla cephe, pencereler, balkonlar, çamaşır ipleri, klimalar, çatı su depoları
+- 15+ bina: sıvalı/tuğla cephe, pencereler, balkonlar, çamaşır ipleri, klimalar, çatı su depoları
+- Dönük binalar/tezgahlar/araçlar için **OBB çarpışma** (döndürülmüş kutu) — köşelerden geçilmiyor
 - Prosedürel tabelalar: KASAP, BAKKAL, FIRIN, BERBER, KIRAATHANE, MANAV, ECZANE
 - Pazar tezgahları, çeşme, park halinde arabalar, ağaçlar, sokak lambaları, elektrik direkleri + teller
 - Kasa, varil, çöp konteyneri, grafiti duvarları, mahalle giriş takı
@@ -50,11 +52,30 @@ Her dalgada atmosfer baştan kurulur (2,4 sn yumuşak geçiş):
 
 Gökyüzü gradyanı, sis rengi/mesafesi, güneş rengi-şiddeti, ortam ışığı, pozlama ve sokak lambaları birlikte değişir; HUD'da saat göstergesi görünür.
 
+**Düşman evrimi — önce askerler, sonra zombiler** (v1.3)
+
+| Dalga | Gelen düşman | Not |
+|---|---|---|
+| 1–2 | 🪖 **Devlet askeri** (150 HP, M4A4) / **Çavuş** (260 HP, AK-47) | kamuflaj, miğfer, çelik yelek, güneş gözlüğü |
+| 3 | karışık: %55 zombi | askerler dağılır, ilk zombiler sokaklara iner |
+| 4 | karışık: %72 zombi | |
+| 5 · 10 · 15… | **🔥 BÜYÜK DALGA** | %45 daha kalabalık, siren + kırmızı banner, %60 fazla bonus |
+| 6+ | 🧟 **Zombi sürüsü** (%90) | nadiren asker kalır |
+
+Zombi tipleri: **Zombi** (110 HP, 2,95 m/s, tırmalama), **Koşan Zombi** (80 HP, 5,1 m/s), **Dev Zombi** (480 HP, 26 hasar, 1,25× boy).
+Zombiler tüfek kullanmaz — kolları ileri uzanmış hâlde koşar, duvar arkasında bile kokudan takip eder (görüş kaybı yavaş), 2 m içinde tırmalar (yüksek hasar, düşük isabet). Ölünce yere yığılır, kan efektleri saçar.
+Radarda zombiler yeşil, askerler kırmızı nokta. Öldürme akışında tip adı yazar (DEVLET ASKERİ, ÇAVUŞ, ZOMBİ, KOŞAN ZOMBİ, DEV ZOMBİ).
+
+**Kamera açısı (v1.3)**
+- Görüş açısı 74° → **80°** (dar ekran/portre 88°), nişanda 47°'ye daralır — büyük haritada çevre kontrolü kolay
+- Göz yüksekliği 1,66 → **1,72 m**, kamera 0,12 m öne kaymış ve +0,035 m yukarıda: silah/eller kadrajda dengeli, ufuk göz hizasında
+- Bakış sınırı yukarı 1,4 rad, aşağı 1,5 rad; koşarken hafif FOV genişlemesi
+
 **Düşman botları — rastgele avatarlı ve zeki**
 - Her botta rastgele: ten rengi, saç, gömlek/pantolon/ayakkabı, sakal, bıyık, güneş gözlüğü, maske, şapka/bandana/kask, vücut yapısı (iri/ince) ve isim (Kel Ali, Karaoğlan, Çakal…)
-- 5 tip: Serseri (tabanca), Tetikçi (M4A4), AKÇI (AK-47), Kaslı (235 HP), Bıçakçı (hızlı)
+- Tipler: Serseri, Tetikçi, AKÇI, Kaslı, Bıçakçı + v1.3'te **asker/çavuş** ve **zombi/koşan/dev**
 - Zeka: A* yol bulma, görüş hattı kontrolü (duvar arkasını görmez), yan kayma (strafe), mesafe koruma, siper alma, sıkışınca yol yenileme, sürü hâlinde ayrışma, dalga ilerledikçe artan isabet/hız/can
-- Botlar tel örgünün dışındaki açık sokaklardan doğar ve mahalleye girer
+- Düşmanlar mahallenin karşı tarafındaki açık noktalardan doğar (asla bina içinde, oyuncuya en az 12 m uzakta) ve mahalleye girer
 
 **Eller ve silah görünümü**
 - Tüm silahlarda görünür **eldivenli eller**: avuç, bükülü parmaklar, başparmak, bilek manşeti, saat ve kol
@@ -113,7 +134,8 @@ Ek olarak mobilde: ~25° koni içinde hafif **nişan yardımı**, %35 geniş isa
 src/template.html   # HTML + CSS + arayüz iskeleti
 src/game.js         # sahne, harita, dokular, silah modelleri
 src/audio.js        # WebAudio ses motoru, girdi, oyuncu durumu
-src/bots.js         # avatarlar, navigasyon/A*, görüş hattı, bot AI, efektler
+src/bots.js         # avatarlar (insan/asker/zombi), navigasyon/A*, görüş hattı, bot AI, efektler
+src/allies.js       # 2 dost bot + gün saati/gökyüzü/lambalar
 src/gameplay.js     # ateş/hasar, dalgalar, mağaza, HUD, radar, ana döngü
 vendor/three.min.js # Three.js r149 (MIT)
 ```
@@ -123,6 +145,13 @@ Değişiklikten sonra tek dosyayı yeniden üret:
 ```bash
 python3 tools/build.py
 ```
+
+## Sürüm geçmişi
+
+- **v1.3.0** — harita 110×110 m'ye büyütüldü (karakol, kontrol noktaları, okul, depo, cami, pazar), devlet askerleri → zombi evrimi, BÜYÜK DALGA, geniş kamera açısı, OBB çarpışma
+- **v1.2.0** — 2 dost bot, her dalgada değişen gün saati, eldivenli eller
+- **v1.1.0** — mobil/dokunmatik destek, portre düzeni
+- **v1.0.0** — ilk sürüm: mahalle haritası, botlar, mağaza, bıçak
 
 ## Lisans
 

@@ -188,6 +188,120 @@
     return { root: root, legL: legL, legR: legR, armL: armL, armR: armR, head: headG, gun: wg, torso: torso };
   }
 
+  // ---- ZOMBİ AVATARI: çürümüş ten, yırtık giysi, kan lekeleri, parlayan gözler
+  function buildZombieAvatar(app) {
+    var s0 = app.scale || 1;
+    var root = new T.Group();
+    root.scale.setScalar(s0);
+    var skinM = new T.MeshStandardMaterial({ color: app.skin, roughness: 0.95 });
+    var clothM = new T.MeshStandardMaterial({ color: app.shirt, roughness: 1, side: T.DoubleSide });
+    var pantsM = new T.MeshStandardMaterial({ color: app.pants, roughness: 1 });
+    var bloodM = new T.MeshStandardMaterial({ color: 0x5a0d0d, roughness: 0.8 });
+    var eyeM = new T.MeshBasicMaterial({ color: app.eye || 0xff3b2f });
+
+    // bacaklar (topallayan)
+    var legL = new T.Group(); legL.position.set(-0.13, 0.84, 0);
+    var legR = new T.Group(); legR.position.set(0.13, 0.84, 0);
+    [legL, legR].forEach(function (lg) {
+      var thigh = new T.Mesh(new T.BoxGeometry(0.18, 0.44, 0.19), pantsM);
+      thigh.position.y = -0.22; lg.add(thigh);
+      var shin = new T.Mesh(new T.BoxGeometry(0.15, 0.42, 0.17), skinM);
+      shin.position.y = -0.64; lg.add(shin);
+      var foot = new T.Mesh(new T.BoxGeometry(0.17, 0.1, 0.27), skinM);
+      foot.position.set(0, -0.87, -0.04); lg.add(foot);
+    });
+    root.add(legL, legR);
+    // gövde (yırtık)
+    var torso = new T.Mesh(new T.BoxGeometry(0.46, 0.58, 0.26), clothM);
+    torso.position.y = 1.14; root.add(torso);
+    // açık yara / kan
+    var wound = new T.Mesh(new T.BoxGeometry(0.2, 0.16, 0.03), bloodM);
+    wound.position.set(0.05, 1.16, 0.135); root.add(wound);
+    var ribs = new T.Mesh(new T.BoxGeometry(0.26, 0.1, 0.02), skinM);
+    ribs.position.set(-0.06, 0.98, 0.135); root.add(ribs);
+    // kollar: ileri uzatılmış (klasik zombi duruşu)
+    var armL = new T.Group(); armL.position.set(-0.3, 1.38, 0);
+    var armR = new T.Group(); armR.position.set(0.3, 1.38, 0);
+    [armL, armR].forEach(function (ar, i) {
+      var up = new T.Mesh(new T.BoxGeometry(0.13, 0.34, 0.14), clothM);
+      up.position.y = -0.15; ar.add(up);
+      var lo = new T.Mesh(new T.BoxGeometry(0.11, 0.34, 0.12), skinM);
+      lo.position.y = -0.46; ar.add(lo);
+      var hand = new T.Mesh(new T.BoxGeometry(0.115, 0.14, 0.13), skinM);
+      hand.position.y = -0.66; ar.add(hand);
+      // kanlı tırnaklar
+      for (var f = 0; f < 3; f++) {
+        var nail = new T.Mesh(new T.BoxGeometry(0.02, 0.05, 0.02), bloodM);
+        nail.position.set(-0.035 + f * 0.035, -0.74, -0.03); ar.add(nail);
+      }
+      ar.rotation.x = -1.42 + i * 0.12;
+    });
+    root.add(armL, armR);
+    // boyun + kafa (eğik)
+    var neck = new T.Mesh(new T.CylinderGeometry(0.06, 0.07, 0.1, 7), skinM);
+    neck.position.y = 1.48; root.add(neck);
+    var headG = new T.Group(); headG.position.set(0, 1.6, 0.02);
+    headG.rotation.z = rand(0.12, -0.12);
+    var head = new T.Mesh(new T.SphereGeometry(0.19, 10, 8), skinM);
+    head.scale.set(1, 1.1, 1); headG.add(head);
+    // parlayan gözler
+    [-1, 1].forEach(function (sx) {
+      var eye = new T.Mesh(new T.SphereGeometry(0.035, 6, 5), eyeM);
+      eye.position.set(sx * 0.075, 0.03, 0.17); headG.add(eye);
+    });
+    // açık ağız + dişler
+    var mouth = new T.Mesh(new T.BoxGeometry(0.11, 0.06, 0.03), new T.MeshBasicMaterial({ color: 0x1a0505 }));
+    mouth.position.set(0, -0.07, 0.18); headG.add(mouth);
+    var teeth = new T.Mesh(new T.BoxGeometry(0.09, 0.015, 0.02), new T.MeshStandardMaterial({ color: 0xd8d2b8, roughness: 0.6 }));
+    teeth.position.set(0, -0.05, 0.19); headG.add(teeth);
+    // yarı kel kafa, saç tutamı
+    var hair = new T.Mesh(new T.SphereGeometry(0.195, 9, 7, 0, Math.PI * 2, 0, Math.PI * 0.42), new T.MeshStandardMaterial({ color: app.hair, roughness: 1 }));
+    hair.position.y = 0.03; headG.add(hair);
+    root.add(headG);
+    root.traverse(function (o) { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return { root: root, legL: legL, legR: legR, armL: armL, armR: armR, head: headG, gun: null, torso: torso };
+  }
+
+  // ---- ASKER AVATARI: kamuflaj, miğfer, çelik yelek
+  function buildSoldierAvatar(app) {
+    var av = buildAvatar(app);
+    // miğfer
+    var helm = new T.Mesh(new T.SphereGeometry(0.225, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.6),
+      new T.MeshStandardMaterial({ color: app.helmetColor || 0x3f4a35, roughness: 0.75, metalness: 0.2 }));
+    helm.position.y = 0.06;
+    av.head.add(helm);
+    // kamuflaj yaması
+    var patch = new T.Mesh(new T.BoxGeometry(0.13, 0.08, 0.02), new T.MeshStandardMaterial({ color: 0x59634a, roughness: 1 }));
+    patch.position.set(-0.1, 1.24, 0.15);
+    av.root.add(patch);
+    // göğüs plakası
+    var plate = new T.Mesh(new T.BoxGeometry(0.36, 0.32, 0.06), new T.MeshStandardMaterial({ color: 0x2f3a2a, roughness: 0.8 }));
+    plate.position.set(0, 1.2, 0.16);
+    av.root.add(plate);
+    return av;
+  }
+
+  function randomZombieAppearance(kind) {
+    var zSkins = [0x7d8f6a, 0x6b7f5a, 0x8a9578, 0x9aa08a, 0x6f7d63, 0x5c6b52, 0xa8a68c];
+    var zShirts = [0x6b5a4a, 0x4a5a6b, 0x7a6a58, 0x554a4a, 0x8a7d6a, 0x3f4a4a];
+    return {
+      skin: pick(zSkins), shirt: pick(zShirts), pants: pick([0x3a3a30, 0x2f3436, 0x4a4232, 0x353a3f]),
+      hair: pick([0x1a1a14, 0x3a3428, 0x2a2418]), eye: pick([0xff3b2f, 0xffa33b, 0xbaff3b, 0xff6b9a]),
+      scale: kind === 'brute' ? rand(1.28, 1.12) : rand(1.06, 0.92),
+      kind: kind
+    };
+  }
+
+  function randomSoldierAppearance() {
+    return {
+      skin: pick(SKINS), shirt: 0x4a5340, pants: 0x39412f, shoes: 0x1a1a14,
+      hair: 0x2a2418, scale: rand(1.06, 0.97), build: 'normal',
+      vest: true, hoodie: false, beard: Math.random() < 0.2, mustache: Math.random() < 0.15,
+      shades: true, mask: false, hat: 'helmet', hatColor: 0x3f4a35,
+      weapon: pick(['m4a4', 'ak47']), helmetColor: 0x3f4a35
+    };
+  }
+
   function randomAppearance(type) {
     var isHeavy = type === 'heavy';
     var isKnifer = type === 'knifer';
@@ -400,10 +514,22 @@
   var bots = [];
   var BOT_ID = 0;
 
+  // tüm düşman tanımları tek yerde
+  if (typeof ENEMY_TYPES !== 'undefined') {
+    for (var _k in ENEMY_TYPES) BOT_TYPES[_k] = ENEMY_TYPES[_k];
+  }
+
   function Bot(type, x, z, wave) {
-    var def = BOT_TYPES[type];
-    var app = randomAppearance(type);
-    var av = buildAvatar(app);
+    var def = BOT_TYPES[type] || BOT_TYPES.thug;
+    var isZombie = !!def.zombie;
+    var isSoldier = !!def.soldier;
+    var app = isZombie ? randomZombieAppearance(type) : (isSoldier ? randomSoldierAppearance() : randomAppearance(type));
+    var av;
+    if (isZombie) av = buildZombieAvatar(app);
+    else if (isSoldier) av = buildSoldierAvatar(app);
+    else av = buildAvatar(app);
+    this.isZombie = isZombie;
+    this.isSoldier = isSoldier;
     this.id = ++BOT_ID;
     this.type = type;
     this.def = def;
@@ -411,7 +537,8 @@
     this.av = av;
     this.root = new T.Group();
     this.root.add(av.root);
-    this.name = pick(BOT_NAMES);
+    var names = isZombie ? ZOMBIE_NAMES : (isSoldier ? SOLDIER_NAMES : BOT_NAMES);
+    this.name = pick(names);
     wave = Math.max(1, wave || G.wave || 1);
     this.wave = wave;
     var hpScale = 1 + Math.max(0, wave - 1) * 0.075;
@@ -507,12 +634,22 @@
     this.deadT = 0;
     this.fallDir = Math.random() < 0.5 ? 1 : -1;
     this.av.root.traverse(function (o) {
-      if (o.isMesh && o.material) {
-        o.material = o.material.clone();
-        o.material.emissive = new T.Color(0x220000);
-        o.material.emissiveIntensity = 0.1;
-        o.material.transparent = true;
-      }
+      if (!o.isMesh || !o.material) return;
+      var isMats = Array.isArray(o.material);
+      var mats = isMats ? o.material : [o.material];
+      var cloned = mats.map(function (m) {
+        var c = m.clone();
+        c.transparent = true;
+        // yalnızca ışık destekleyen malzemelerde emissive var (Basic'te yok)
+        if (c.emissive && c.emissive.isColor) {
+          c.emissive = new T.Color(0x220000);
+          c.emissiveIntensity = 0.14;
+        } else if (c.color && c.color.isColor) {
+          c.color = c.color.clone().multiplyScalar(0.72);
+        }
+        return c;
+      });
+      o.material = isMats ? cloned : cloned[0];
     });
     // olası sağlık paketi
     if (Math.random() < 0.17) spawnPickup('health', this.pos.x + rand(0.6, -0.6), this.pos.z + rand(0.6, -0.6));
@@ -566,14 +703,17 @@
     var dist = Math.hypot(dx, dz);
     var dirX = dist > 0.001 ? dx / dist : 0, dirZ = dist > 0.001 ? dz / dist : 0;
 
-    // görüş
+    // görüş — zombiler koku/ses ile de takip eder (duvar arkasında da yönelir)
     var canSee = !losBlocked(this.pos.x, this.pos.z, px, pz);
-    if (canSee) this.seenT = 2.2; else this.seenT = Math.max(0, this.seenT - dt);
+    if (canSee) this.seenT = 2.2;
+    else if (isZombieAI) this.seenT = Math.max(1.0, this.seenT - dt * 0.5);
+    else this.seenT = Math.max(0, this.seenT - dt);
 
     this.think -= dt;
     var desired = V3(0, 0, 0);
     var def = this.def;
-    var melee = def.weapon === 'knife';
+    var melee = (def.weapon === 'knife' || def.weapon === 'claw');
+    var isZombieAI = !!def.zombie;
     var wantRange = melee ? 0.9 : (this.type === 'heavy' ? 11 : 8.5);
 
     if (this.think <= 0) {
@@ -690,30 +830,41 @@
     av.legL.rotation.x = sw * 0.72 * cad;
     av.legR.rotation.x = -sw * 0.72 * cad;
     var aiming = !melee && (this.seenT > 0 || this.painT > 0);
-    if (aiming) {
+    if (aiming && !isZombieAI) {
       av.armR.rotation.x = -1.42 + this.painT * 1.2;
       av.armR.rotation.y = 0;
       av.armL.rotation.x = -1.25;
       av.armL.rotation.y = 0.5;
-    } else if (melee) {
+    } else if (melee && !isZombieAI) {
       av.armR.rotation.x = -0.6 + Math.sin(this.walkPhase) * 0.5 * cad;
       av.armR.rotation.y = 0;
       av.armL.rotation.x = sw * 0.7 * cad;
       av.armL.rotation.y = 0;
-    } else {
+    } else if (!isZombieAI) {
       av.armR.rotation.x = -sw * 0.55 * cad;
       av.armL.rotation.x = sw * 0.55 * cad;
       av.armR.rotation.y = 0; av.armL.rotation.y = 0;
     }
     av.root.position.y = Math.abs(Math.sin(this.walkPhase)) * 0.035 * cad;
+    if (isZombieAI) {
+      // zombi: kollar hep ileri, topallayan bacak, sallanan kafa
+      av.armL.rotation.x = -1.35 + Math.sin(this.walkPhase * 0.9) * 0.18;
+      av.armR.rotation.x = -1.45 + Math.cos(this.walkPhase * 0.9) * 0.18;
+      av.armL.rotation.y = 0.1; av.armR.rotation.y = -0.1;
+      av.head.rotation.z = Math.sin(this.walkPhase * 0.5) * 0.16;
+      av.root.position.y = Math.abs(Math.sin(this.walkPhase)) * 0.05 * cad;
+      av.legL.rotation.x = sw * 0.55 * cad;
+      av.legR.rotation.x = -sw * 0.45 * cad;
+    }
 
     // ---- ATEŞ ----
     this.fireCd -= dt;
     if (melee) {
       if (dist < 2.0 && this.meleeCd <= 0 && this.seenT > 0 && G.state === 'playing') {
-        this.meleeCd = 1.0;
+        this.meleeCd = isZombieAI ? 1.35 : 1.0;
         Effects.slash(this.pos, this.yaw);
-        Audio2.knife();
+        if (isZombieAI) Audio2.zombie ? Audio2.zombie() : Audio2.knife();
+        else Audio2.knife();
         setTimeout((function (self) {
           return function () {
             if (self.dead || G.state !== 'playing') return;
